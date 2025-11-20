@@ -1,215 +1,185 @@
-#![allow(non_upper_case_globals)]
+use beryllium::{
+    events::{SDLK_DOWN, SDLK_LEFT, SDLK_RIGHT, SDLK_UP},
+    *,
+};
+use bytemuck::cast_slice;
+use gl33::{global_loader::*, *};
 
-use std::ffi::CString;
-use std::ffi::c_void;
-use std::mem;
-use std::ptr;
+use voxel_engine::{
+    Buffer, BufferType, PolygonMode, ShaderProgram, Vec3, VertexArray, buffer_data, clear_color,
+    polygon_mode,
+};
 
-use gl::types::*;
-use glfw::{Action, Context, GlfwReceiver, Key, fail_on_errors};
+type Vertex = Vec3;
+type TriIndexes = [u32; 3];
 
-use anyhow::Result;
+const WIDTH: i32 = 800;
+const HEIGHT: i32 = 600;
 
-const SCR_WIDTH: u32 = 800;
-const SCR_HEIGHT: u32 = 600;
+// make window float with my niri setup
+const WINDOW_TITLE: &str = "(float)";
 
-const vertexShaderSource: &str = r#"
-    #version 330 core
-    layout (location = 0) in vec3 aPos;
-    void main() {
-       gl_Position = vec4(aPos.x, aPos.y, aPos.z, 1.0);
-    }
+const INDICES: [TriIndexes; 2] = [[0, 1, 3], [1, 2, 3]];
+
+const VERT_SHADER: &str = r#"#version 330 core
+  layout (location = 0) in vec3 pos;
+  void main() {
+      gl_Position = vec4(pos.x, pos.y, pos.z, 1.0);
+  }
 "#;
 
-const fragmentShaderSource: &str = r#"
-    #version 330 core
-    out vec4 FragColor;
-    void main() {
-       FragColor = vec4(1.0f, 0.5f, 0.2f, 1.0f);
-    }
+const FRAG_SHADER: &str = r#"#version 330 core
+  out vec4 final_color;
+
+  void main() {
+    final_color = vec4(1.0, 0.5, 0.2, 1.0);
+  }
 "#;
 
-#[allow(non_snake_case)]
-fn main() -> Result<()> {
-    let mut glfw = glfw::init(fail_on_errors!())?;
-    glfw.window_hint(glfw::WindowHint::ContextVersion(3, 3));
-    glfw.window_hint(glfw::WindowHint::OpenGlProfile(
-        glfw::OpenGlProfileHint::Core,
-    ));
+fn main() {
+    let mut verticies_dirty = true;
+    let mut verticies: [Vertex; 4] = [
+        Vec3::new(0.5, 0.5, 0.0),
+        Vec3::new(0.5, -0.5, 0.0),
+        Vec3::new(-0.5, -0.5, 0.0),
+        Vec3::new(-0.5, 0.5, 0.0),
+    ];
+
+    let sdl = Sdl::init(init::InitFlags::EVERYTHING);
+
+    sdl.set_gl_context_major_version(3).unwrap();
+    sdl.set_gl_context_minor_version(3).unwrap();
+    sdl.set_gl_profile(video::GlProfile::Core).unwrap();
+
     #[cfg(target_os = "macos")]
-    glfw.window_hint(glfw::WindowHint::OpenGlForwardCompat(true));
+    sdl.set_gl_context_flags(video::GlContextFlags::FORWARD_COMPATIBLE)
+        .unwrap();
 
-    let (mut window, events) = glfw
-        .create_window(
-            SCR_WIDTH,
-            SCR_HEIGHT,
-            "Hello this is window (float)",
-            glfw::WindowMode::Windowed,
-        )
-        .expect("Failed to create GLFW window.");
-
-    window.make_current();
-    window.set_key_polling(true);
-    window.set_framebuffer_size_polling(true);
-
-    gl::load_with(|symbol| {
-        window
-            .get_proc_address(symbol)
-            .map(|f| f as *const _)
-            .unwrap_or(std::ptr::null())
-    });
-
-    let (shaderProgram, VAO) = unsafe {
-        // build and compile our shader program
-        // ------------------------------------
-        // vertex shader
-        let vertexShader = gl::CreateShader(gl::VERTEX_SHADER);
-        let c_str_vert = CString::new(vertexShaderSource.as_bytes()).unwrap();
-        gl::ShaderSource(vertexShader, 1, &c_str_vert.as_ptr(), ptr::null());
-        gl::CompileShader(vertexShader);
-
-        // check for shader compile errors
-        let mut success = gl::FALSE as GLint;
-        let mut infoLog = vec![0u8; 512];
-        infoLog.set_len(512 - 1); // subtract 1 to skip the trailing null character
-        gl::GetShaderiv(vertexShader, gl::COMPILE_STATUS, &mut success);
-        if success != gl::TRUE as GLint {
-            gl::GetShaderInfoLog(
-                vertexShader,
-                512,
-                ptr::null_mut(),
-                infoLog.as_mut_ptr() as *mut GLchar,
-            );
-            println!(
-                "ERROR::SHADER::VERTEX::COMPILATION_FAILED\n{}",
-                str::from_utf8(&infoLog).unwrap()
-            );
-        }
-
-        // fragment shader
-        let fragmentShader = gl::CreateShader(gl::FRAGMENT_SHADER);
-        let c_str_frag = CString::new(fragmentShaderSource.as_bytes()).unwrap();
-        gl::ShaderSource(fragmentShader, 1, &c_str_frag.as_ptr(), ptr::null());
-        gl::CompileShader(fragmentShader);
-        // check for shader compile errors
-        gl::GetShaderiv(fragmentShader, gl::COMPILE_STATUS, &mut success);
-        if success != gl::TRUE as GLint {
-            gl::GetShaderInfoLog(
-                fragmentShader,
-                512,
-                ptr::null_mut(),
-                infoLog.as_mut_ptr() as *mut GLchar,
-            );
-            println!(
-                "ERROR::SHADER::FRAGMENT::COMPILATION_FAILED\n{}",
-                str::from_utf8(&infoLog).unwrap()
-            );
-        }
-
-        // link shaders
-        let shaderProgram = gl::CreateProgram();
-        gl::AttachShader(shaderProgram, vertexShader);
-        gl::AttachShader(shaderProgram, fragmentShader);
-        gl::LinkProgram(shaderProgram);
-        // check for linking errors
-        gl::GetProgramiv(shaderProgram, gl::LINK_STATUS, &mut success);
-        if success != gl::TRUE as GLint {
-            gl::GetProgramInfoLog(
-                shaderProgram,
-                512,
-                ptr::null_mut(),
-                infoLog.as_mut_ptr() as *mut GLchar,
-            );
-            println!(
-                "ERROR::SHADER::PROGRAM::COMPILATION_FAILED\n{}",
-                str::from_utf8(&infoLog).unwrap()
-            );
-        }
-        gl::DeleteShader(vertexShader);
-        gl::DeleteShader(fragmentShader);
-
-        // set up vertex data (and buffer(s)) and configure vertex attributes
-        // ------------------------------------------------------------------
-        // HINT: type annotation is crucial since default for float literals is f64
-        let vertices: [f32; 9] = [
-            -0.5, -0.5, 0.0, // left
-            0.5, -0.5, 0.0, // right
-            0.0, 0.5, 0.0, // top
-        ];
-        let (mut VBO, mut VAO) = (0, 0);
-        gl::GenVertexArrays(1, &mut VAO);
-        gl::GenBuffers(1, &mut VBO);
-        // bind the Vertex Array Object first, then bind and set vertex buffer(s), and then configure vertex attributes(s).
-        gl::BindVertexArray(VAO);
-
-        gl::BindBuffer(gl::ARRAY_BUFFER, VBO);
-        gl::BufferData(
-            gl::ARRAY_BUFFER,
-            (vertices.len() * mem::size_of::<GLfloat>()) as GLsizeiptr,
-            &vertices[0] as *const f32 as *const c_void,
-            gl::STATIC_DRAW,
-        );
-
-        gl::VertexAttribPointer(
-            0,
-            3,
-            gl::FLOAT,
-            gl::FALSE,
-            3 * mem::size_of::<GLfloat>() as GLsizei,
-            ptr::null(),
-        );
-        gl::EnableVertexAttribArray(0);
-
-        // note that this is allowed, the call to gl::VertexAttribPointer registered VBO as the vertex attribute's bound vertex buffer object so afterwards we can safely unbind
-        gl::BindBuffer(gl::ARRAY_BUFFER, 0);
-
-        // You can unbind the VAO afterwards so other VAO calls won't accidentally modify this VAO, but this rarely happens. Modifying other
-        // VAOs requires a call to glBindVertexArray anyways so we generally don't unbind VAOs (nor VBOs) when it's not directly necessary.
-        gl::BindVertexArray(0);
-
-        // uncomment this call to draw in wireframe polygons.
-        // gl::PolygonMode(gl::FRONT_AND_BACK, gl::LINE);
-
-        (shaderProgram, VAO)
+    let win_args = video::CreateWinArgs {
+        title: WINDOW_TITLE,
+        width: WIDTH,
+        height: HEIGHT,
+        allow_high_dpi: true,
+        borderless: false,
+        resizable: false,
     };
 
-    while !window.should_close() {
-        process_events(&mut window, &events);
+    let win = sdl
+        .create_gl_window(win_args)
+        .expect("Failed to create window");
+    win.set_swap_interval(video::GlSwapInterval::Vsync).unwrap();
 
-        // render
-        // ------
-        unsafe {
-            gl::ClearColor(0.2, 0.3, 0.3, 1.0);
-            gl::Clear(gl::COLOR_BUFFER_BIT);
+    unsafe { load_global_gl(&|p_name| win.get_proc_address(p_name)) };
 
-            // draw our first triangle
-            gl::UseProgram(shaderProgram);
-            gl::BindVertexArray(VAO); // seeing as we only have a single VAO there's no need to bind it every time, but we'll do so to keep things a bit more organized
-            gl::DrawArrays(gl::TRIANGLES, 0, 3);
-            // glBindVertexArray(0); // no need to unbind it every time
-        }
+    let vao = VertexArray::new().expect("Failed to create VAO");
+    vao.bind();
 
-        window.swap_buffers();
-        glfw.poll_events();
+    // generate and bind vertex buffer object
+    let vbo = Buffer::new().expect("Failed to create VBO");
+    vbo.bind(BufferType::Array);
+
+    // generate element buffer object to store triangle indicies
+    let ebo = Buffer::new().expect("Failed to create EBO");
+    ebo.bind(BufferType::ElementArray);
+    buffer_data(
+        BufferType::ElementArray,
+        bytemuck::cast_slice(&INDICES),
+        GL_STATIC_DRAW,
+    );
+
+    unsafe {
+        glVertexAttribPointer(
+            0,
+            3,
+            GL_FLOAT,
+            GL_FALSE.0 as u8,
+            size_of::<Vertex>().try_into().unwrap(),
+            0 as *const _,
+        );
+
+        glEnableVertexAttribArray(0);
     }
 
-    Ok(())
-}
+    let shader_program = ShaderProgram::from_vert_frag(VERT_SHADER, FRAG_SHADER).unwrap();
+    shader_program.use_program();
 
-// NOTE: not the same version as in common.rs!
-fn process_events(window: &mut glfw::Window, events: &GlfwReceiver<(f64, glfw::WindowEvent)>) {
-    for (_, event) in glfw::flush_messages(events) {
-        println!("{:?}", event);
-        match event {
-            glfw::WindowEvent::FramebufferSize(width, height) => {
-                // make sure the viewport matches the new window dimensions; note that width and
-                // height will be significantly larger than specified on retina displays.
-                unsafe { gl::Viewport(0, 0, width, height) }
-            }
-            glfw::WindowEvent::Key(Key::Escape, _, Action::Press, _) => {
-                window.set_should_close(true)
-            }
-            _ => {}
+    clear_color(0.2, 0.3, 0.3, 1.0);
+    polygon_mode(PolygonMode::Line);
+
+    'main_loop: loop {
+        // send the data to buffer
+        if verticies_dirty {
+            verticies_dirty = false;
+            buffer_data(
+                BufferType::Array,
+                cast_slice(&verticies.map(|v| v.clone().to_slice())),
+                GL_STATIC_DRAW,
+            );
         }
+
+        unsafe {
+            glClear(GL_COLOR_BUFFER_BIT);
+            glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0 as *const _);
+        }
+
+        while let Some(event) = sdl.poll_events() {
+            match event {
+                (events::Event::Quit, _) => break 'main_loop,
+                (
+                    events::Event::Key {
+                        keycode, pressed, ..
+                    },
+                    _,
+                ) => {
+                    if !pressed {
+                        continue;
+                    }
+
+                    match keycode {
+                        SDLK_UP => {
+                            let other = Vec3::new(0., 0.1, 0.);
+                            verticies = verticies.map(|mut v| {
+                                v.add(&other);
+                                v
+                            });
+                            verticies_dirty = true;
+                        }
+
+                        SDLK_DOWN => {
+                            let other = Vec3::new(0., -0.1, 0.);
+                            verticies = verticies.map(|mut v| {
+                                v.add(&other);
+                                v
+                            });
+                            verticies_dirty = true;
+                        }
+
+                        SDLK_LEFT => {
+                            let other = Vec3::new(-0.1, 0., 0.);
+                            verticies = verticies.map(|mut v| {
+                                v.add(&other);
+                                v
+                            });
+                            verticies_dirty = true;
+                        }
+
+                        SDLK_RIGHT => {
+                            let other = Vec3::new(0.1, 0., 0.);
+                            verticies = verticies.map(|mut v| {
+                                v.add(&other);
+                                v
+                            });
+                            verticies_dirty = true;
+                        }
+
+                        _ => {}
+                    }
+                }
+
+                _ => {}
+            }
+        }
+
+        win.swap_window();
     }
 }
