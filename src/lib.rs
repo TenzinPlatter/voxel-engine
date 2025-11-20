@@ -23,20 +23,43 @@ impl Vec3 {
     }
 }
 
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct Vertex {
+    pub point: Vec3,
+    pub color: Vec3,
+}
+
+impl Vertex {
+    pub fn new(point: Vec3, color: Vec3) -> Self {
+        Self { point, color }
+    }
+
+    pub fn to_slice(&self) -> [f32; 6] {
+        [
+            self.point.x,
+            self.point.y,
+            self.point.z,
+            self.color.x,
+            self.color.y,
+            self.color.z,
+        ]
+    }
+}
+
 /// The polygon display modes you can set.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum PolygonMode {
-  /// Just show the points.
-  Point = GL_POINT.0 as isize,
-  /// Just show the lines.
-  Line = GL_LINE.0 as isize,
-  /// Fill in the polygons.
-  Fill = GL_FILL.0 as isize,
+    /// Just show the points.
+    Point = GL_POINT.0 as isize,
+    /// Just show the lines.
+    Line = GL_LINE.0 as isize,
+    /// Fill in the polygons.
+    Fill = GL_FILL.0 as isize,
 }
 
 /// Sets the font and back polygon mode to the mode given.
 pub fn polygon_mode(mode: PolygonMode) {
-  unsafe { glPolygonMode(GL_FRONT_AND_BACK, GLenum(mode as u32)) };
+    unsafe { glPolygonMode(GL_FRONT_AND_BACK, GLenum(mode as u32)) };
 }
 
 /// Basic wrapper for a [Vertex Array
@@ -153,6 +176,14 @@ impl ShaderProgram {
             let out = format!("Program Link Error: {}", p.info_log());
             p.delete();
             Err(out)
+        }
+    }
+
+    pub fn set_uniform3f(&self, name: &str, value: Vec3) {
+        let cstr = std::ffi::CString::new(name).unwrap();
+        unsafe {
+            let location = glGetUniformLocation(self.0, cstr.as_bytes().as_ptr());
+            glUniform3f(location, value.x, value.y, value.z);
         }
     }
 }

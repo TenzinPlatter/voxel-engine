@@ -6,11 +6,9 @@ use bytemuck::cast_slice;
 use gl33::{global_loader::*, *};
 
 use voxel_engine::{
-    Buffer, BufferType, PolygonMode, ShaderProgram, Vec3, VertexArray, buffer_data, clear_color,
-    polygon_mode,
+    buffer_data, clear_color, polygon_mode, Buffer, BufferType, PolygonMode, ShaderProgram, Vec3, Vertex, VertexArray
 };
 
-type Vertex = Vec3;
 type TriIndexes = [u32; 3];
 
 const WIDTH: i32 = 800;
@@ -28,10 +26,10 @@ const FRAG_SHADER: &str = include_str!("../shaders/fragment.glsl");
 fn main() {
     let mut verticies_dirty = true;
     let mut verticies: [Vertex; 4] = [
-        Vec3::new(0.5, 0.5, 0.0),
-        Vec3::new(0.5, -0.5, 0.0),
-        Vec3::new(-0.5, -0.5, 0.0),
-        Vec3::new(-0.5, 0.5, 0.0),
+        Vertex::new(Vec3::new(0.5, 0.5, 0.0), Vec3::new(1., 0., 0.)),
+        Vertex::new(Vec3::new(0.5, -0.5, 0.0), Vec3::new(0., 1., 0.)),
+        Vertex::new(Vec3::new(-0.5, -0.5, 0.0), Vec3::new(0., 0., 1.)),
+        Vertex::new(Vec3::new(-0.5, 0.5, 0.0), Vec3::new(0., 0., 0.))
     ];
 
     let sdl = Sdl::init(init::InitFlags::EVERYTHING);
@@ -77,23 +75,37 @@ fn main() {
     );
 
     unsafe {
+        let vec3_size: i32 = size_of::<Vec3>().try_into().unwrap();
+
+        // setup position attribute
         glVertexAttribPointer(
             0,
             3,
             GL_FLOAT,
             GL_FALSE.0 as u8,
-            size_of::<Vertex>().try_into().unwrap(),
+            2 * vec3_size,
             0 as *const _,
         );
 
+        // setup color attribute
+        glVertexAttribPointer(
+            1,
+            3,
+            GL_FLOAT,
+            GL_FALSE.0 as u8,
+            2 * vec3_size,
+            vec3_size as *const _,
+        );
+
         glEnableVertexAttribArray(0);
+        glEnableVertexAttribArray(1);
     }
 
     let shader_program = ShaderProgram::from_vert_frag(VERT_SHADER, FRAG_SHADER).unwrap();
     shader_program.use_program();
 
     clear_color(0.2, 0.3, 0.3, 1.0);
-    polygon_mode(PolygonMode::Line);
+    polygon_mode(PolygonMode::Fill);
 
     'main_loop: loop {
         // send the data to buffer
@@ -128,7 +140,7 @@ fn main() {
                         SDLK_UP => {
                             let other = Vec3::new(0., 0.1, 0.);
                             verticies = verticies.map(|mut v| {
-                                v.add(&other);
+                                v.point.add(&other);
                                 v
                             });
                             verticies_dirty = true;
@@ -137,7 +149,7 @@ fn main() {
                         SDLK_DOWN => {
                             let other = Vec3::new(0., -0.1, 0.);
                             verticies = verticies.map(|mut v| {
-                                v.add(&other);
+                                v.point.add(&other);
                                 v
                             });
                             verticies_dirty = true;
@@ -146,7 +158,7 @@ fn main() {
                         SDLK_LEFT => {
                             let other = Vec3::new(-0.1, 0., 0.);
                             verticies = verticies.map(|mut v| {
-                                v.add(&other);
+                                v.point.add(&other);
                                 v
                             });
                             verticies_dirty = true;
@@ -155,7 +167,7 @@ fn main() {
                         SDLK_RIGHT => {
                             let other = Vec3::new(0.1, 0., 0.);
                             verticies = verticies.map(|mut v| {
-                                v.add(&other);
+                                v.point.add(&other);
                                 v
                             });
                             verticies_dirty = true;
