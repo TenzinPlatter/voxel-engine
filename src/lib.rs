@@ -26,23 +26,39 @@ impl Vec3 {
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Vertex {
     pub point: Vec3,
-    pub color: Vec3,
+    pub color: Option<Vec3>,
+    pub texture: Option<Vec3>,
 }
 
 impl Vertex {
-    pub fn new(point: Vec3, color: Vec3) -> Self {
-        Self { point, color }
+    pub fn new(point: Vec3) -> Self {
+        Self {
+            point,
+            color: None,
+            texture: None,
+        }
     }
 
-    pub fn to_slice(&self) -> [f32; 6] {
-        [
-            self.point.x,
-            self.point.y,
-            self.point.z,
-            self.color.x,
-            self.color.y,
-            self.color.z,
-        ]
+    pub fn add_color(&mut self, color: Vec3) {
+        self.color = Some(color);
+    }
+
+    pub fn add_texture_coords(&mut self, p: Vec3) {
+        self.texture = Some(p);
+    }
+
+    pub fn to_flat(&self) -> Vec<f32> {
+        let mut res = vec![self.point.x, self.point.y, self.point.z];
+
+        if let Some(c) = &self.color {
+            res.extend_from_slice(&[c.x, c.y, c.z]);
+        }
+
+        if let Some(t) = &self.texture {
+            res.extend_from_slice(&[t.x, t.y, t.z]);
+        }
+
+        res
     }
 }
 

@@ -23,14 +23,25 @@ const VERT_SHADER: &str = include_str!("../shaders/vertex.glsl");
 
 const FRAG_SHADER: &str = include_str!("../shaders/fragment.glsl");
 
+fn setup_verticies() -> [Vertex; 4] {
+    let mut verticies: [Vertex; 4] = [
+        Vertex::new(Vec3::new(0.5, 0.5, 0.0)),
+        Vertex::new(Vec3::new(0.5, -0.5, 0.0)),
+        Vertex::new(Vec3::new(-0.5, -0.5, 0.0)),
+        Vertex::new(Vec3::new(-0.5, 0.5, 0.0))
+    ];
+
+    verticies[0].add_color(Vec3::new(1., 0., 0.));
+    verticies[1].add_color(Vec3::new(0., 1., 0.));
+    verticies[2].add_color(Vec3::new(0., 0., 1.));
+    verticies[3].add_color(Vec3::new(0., 0., 0.));
+
+    verticies
+}
+
 fn main() {
     let mut verticies_dirty = true;
-    let mut verticies: [Vertex; 4] = [
-        Vertex::new(Vec3::new(0.5, 0.5, 0.0), Vec3::new(1., 0., 0.)),
-        Vertex::new(Vec3::new(0.5, -0.5, 0.0), Vec3::new(0., 1., 0.)),
-        Vertex::new(Vec3::new(-0.5, -0.5, 0.0), Vec3::new(0., 0., 1.)),
-        Vertex::new(Vec3::new(-0.5, 0.5, 0.0), Vec3::new(0., 0., 0.))
-    ];
+    let mut verticies = setup_verticies();
 
     let sdl = Sdl::init(init::InitFlags::EVERYTHING);
 
@@ -111,9 +122,13 @@ fn main() {
         // send the data to buffer
         if verticies_dirty {
             verticies_dirty = false;
+
+            let flat: Vec<f32> = verticies.iter()
+                .flat_map(|v| v.to_flat())
+                .collect();
             buffer_data(
                 BufferType::Array,
-                cast_slice(&verticies.map(|v| v.clone().to_slice())),
+                cast_slice(&flat),
                 GL_STATIC_DRAW,
             );
         }
