@@ -1,5 +1,5 @@
 use gl33::{global_loader::*, *};
-use ultraviolet::Vec3;
+use glam::Vec3;
 
 /// The types of shader object.
 pub enum ShaderType {

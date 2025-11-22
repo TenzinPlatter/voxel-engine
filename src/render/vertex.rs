@@ -1,39 +1,41 @@
+use bytemuck::{Pod, Zeroable};
 use gl33::{global_loader::*, *};
-use ultraviolet::vec::Vec3;
+use glam::{Vec2, Vec3};
 
 pub trait Vertex {
     fn configure_attributes();
 }
 
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[repr(C)]
+#[derive(Clone, Copy, Pod, Zeroable)]
 pub struct VertexColor {
     pub point: Vec3,
-    pub color: Option<Vec3>,
-    pub texture: Option<Vec3>,
+    pub color: Vec3,
 }
 
-impl Vertex for VertexColor {
+#[repr(C)]
+#[derive(Clone, Copy, Pod, Zeroable)]
+pub struct VertexTex {
+    pub point: Vec3,
+    pub tex: Vec2,
+}
+
+impl Vertex for VertexTex {
     fn configure_attributes() {
         unsafe {
             let vec3_size: i32 = size_of::<Vec3>().try_into().unwrap();
-
+            let vec2_size: i32 = size_of::<Vec2>().try_into().unwrap();
+            let stride = vec3_size + vec2_size;
             // setup position attribute
-            glVertexAttribPointer(
-                0,
-                3,
-                GL_FLOAT,
-                GL_FALSE.0 as u8,
-                2 * vec3_size,
-                0 as *const _,
-            );
-
+            glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE.0 as u8, stride, 0 as *const _);
             // setup color attribute
             glVertexAttribPointer(
                 1,
-                3,
+                2,
                 GL_FLOAT,
                 GL_FALSE.0 as u8,
-                2 * vec3_size,
+                stride,
+                // texture coords are offset from beginning by the size of the vec3 with the point
                 vec3_size as *const _,
             );
 
@@ -43,34 +45,38 @@ impl Vertex for VertexColor {
     }
 }
 
+impl VertexTex {
+    pub fn new(point: Vec3, tex: Vec2) -> Self {
+        Self { point, tex }
+    }
+    pub fn set_tex(&mut self, tex: Vec2) {
+        self.tex = tex;
+    }
+}
+
+impl Vertex for VertexColor {
+    fn configure_attributes() {
+        unsafe {
+            let vec3_size: i32 = size_of::<Vec3>() as i32;
+
+            // setup position attribute
+            glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE.0 as u8, 2 * vec3_size, 0 as *const _);
+
+            // setup color attribute
+            glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE.0 as u8, 2 * vec3_size, vec3_size as *const _);
+
+            glEnableVertexAttribArray(0);
+            glEnableVertexAttribArray(1);
+        }
+    }
+}
+
 impl VertexColor {
-    pub fn new(point: Vec3) -> Self {
-        Self {
-            point,
-            color: None,
-            texture: None,
-        }
+    pub fn new(point: Vec3, color: Vec3) -> Self {
+        Self { point, color }
     }
 
-    pub fn add_color(&mut self, color: Vec3) {
-        self.color = Some(color);
-    }
-
-    pub fn add_texture_coords(&mut self, p: Vec3) {
-        self.texture = Some(p);
-    }
-
-    pub fn to_flat(&self) -> Vec<f32> {
-        let mut res = vec![self.point.x, self.point.y, self.point.z];
-
-        if let Some(c) = &self.color {
-            res.extend_from_slice(&[c.x, c.y, c.z]);
-        }
-
-        if let Some(t) = &self.texture {
-            res.extend_from_slice(&[t.x, t.y, t.z]);
-        }
-
-        res
+    pub fn set_color(&mut self, color: Vec3) {
+        self.color = color;
     }
 }

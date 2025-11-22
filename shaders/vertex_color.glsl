@@ -2,10 +2,10 @@
 layout (location = 0) in vec3 pos;
 layout (location = 1) in vec3 color;
 
-out vec3 ourColor;
+out vec3 our_color;
 
 void main() {
     // implicit out var
-    gl_Position = vec4(pos.x, pos.y, pos.z, 1.0);
-    ourColor = color;
+    gl_Position = vec4(pos, 1.0);
+    our_color = color;
 }

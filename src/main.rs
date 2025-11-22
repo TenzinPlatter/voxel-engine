@@ -5,13 +5,9 @@ use beryllium::{
 
 use bytemuck::cast_slice;
 use gl33::{global_loader::*, *};
-use ultraviolet::Vec3;
+use glam::{Vec2, Vec3};
 use voxel_engine::render::{
-    PolygonMode,
-    buffer::{Buffer, BufferType, VertexArray, buffer_data},
-    clear_color, polygon_mode,
-    shader::ShaderProgram,
-    vertex::{Vertex, VertexColor},
+    buffer::{buffer_data, Buffer, BufferType, VertexArray}, clear_color, polygon_mode, shader::ShaderProgram, texture::Texture, vertex::{Vertex, VertexColor, VertexTex}, PolygonMode
 };
 
 type TriIndexes = [u32; 3];
@@ -24,29 +20,18 @@ const WINDOW_TITLE: &str = "(float)";
 
 const INDICES: [TriIndexes; 2] = [[0, 1, 3], [1, 2, 3]];
 
-const VERT_SHADER: &str = include_str!("../shaders/vertex.glsl");
+const VERT_SHADER: &str = include_str!("../shaders/vertex_tex.glsl");
 
 const FRAG_SHADER: &str = include_str!("../shaders/fragment.glsl");
 
-fn setup_verticies() -> [VertexColor; 4] {
-    let mut verticies: [VertexColor; 4] = [
-        VertexColor::new(Vec3::new(0.5, 0.5, 0.0)),
-        VertexColor::new(Vec3::new(0.5, -0.5, 0.0)),
-        VertexColor::new(Vec3::new(-0.5, -0.5, 0.0)),
-        VertexColor::new(Vec3::new(-0.5, 0.5, 0.0)),
-    ];
-
-    verticies[0].add_color(Vec3::new(1., 0., 0.));
-    verticies[1].add_color(Vec3::new(0., 1., 0.));
-    verticies[2].add_color(Vec3::new(0., 0., 1.));
-    verticies[3].add_color(Vec3::new(0., 0., 0.));
-
-    verticies
-}
-
 fn main() {
     let mut verticies_dirty = true;
-    let mut verticies = setup_verticies();
+    let mut verticies = [
+        VertexTex::new(Vec3::new(0.5, 0.5, 0.0), Vec2::new(1.0, 1.0)),
+        VertexTex::new(Vec3::new(0.5, -0.5, 0.0), Vec2::new(1.0, 0.0)),
+        VertexTex::new(Vec3::new(-0.5, -0.5, 0.0), Vec2::new(0.0, 0.0)),
+        VertexTex::new(Vec3::new(-0.5, 0.5, 0.0), Vec2::new(0.0, 1.0)),
+    ];
 
     let sdl = Sdl::init(init::InitFlags::EVERYTHING);
 
@@ -55,8 +40,7 @@ fn main() {
     sdl.set_gl_profile(video::GlProfile::Core).unwrap();
 
     #[cfg(target_os = "macos")]
-    sdl.set_gl_context_flags(video::GlContextFlags::FORWARD_COMPATIBLE)
-        .unwrap();
+    sdl.set_gl_context_flags(video::GlContextFlags::FORWARD_COMPATIBLE).unwrap();
 
     let win_args = video::CreateWinArgs {
         title: WINDOW_TITLE,
@@ -67,9 +51,7 @@ fn main() {
         resizable: false,
     };
 
-    let win = sdl
-        .create_gl_window(win_args)
-        .expect("Failed to create window");
+    let win = sdl.create_gl_window(win_args).expect("Failed to create window");
     win.set_swap_interval(video::GlSwapInterval::Vsync).unwrap();
 
     unsafe { load_global_gl(&|p_name| win.get_proc_address(p_name)) };
@@ -84,16 +66,16 @@ fn main() {
     // generate element buffer object to store triangle indicies
     let ebo = Buffer::new().expect("Failed to create EBO");
     ebo.bind(BufferType::ElementArray);
-    buffer_data(
-        BufferType::ElementArray,
-        bytemuck::cast_slice(&INDICES),
-        GL_STATIC_DRAW,
-    );
+    buffer_data(BufferType::ElementArray, bytemuck::cast_slice(&INDICES), GL_STATIC_DRAW);
+
+    let tex = Texture::new().expect("Failed to create texture");
+    tex.bind();
+    Texture::set_image("assets/wood_container.jpg");
 
     let shader_program = ShaderProgram::from_vert_frag(VERT_SHADER, FRAG_SHADER).unwrap();
     shader_program.use_program();
 
-    VertexColor::configure_attributes();
+    VertexTex::configure_attributes();
 
     clear_color(0.2, 0.3, 0.3, 1.0);
     polygon_mode(PolygonMode::Fill);
@@ -103,8 +85,7 @@ fn main() {
         if verticies_dirty {
             verticies_dirty = false;
 
-            let flat: Vec<f32> = verticies.iter().flat_map(|v| v.to_flat()).collect();
-            buffer_data(BufferType::Array, cast_slice(&flat), GL_STATIC_DRAW);
+            buffer_data(BufferType::Array, cast_slice(&verticies), GL_STATIC_DRAW);
         }
 
         unsafe {
@@ -115,54 +96,32 @@ fn main() {
         while let Some(event) = sdl.poll_events() {
             match event {
                 (events::Event::Quit, _) => break 'main_loop,
-                (
-                    events::Event::Key {
-                        keycode, pressed, ..
-                    },
-                    _,
-                ) => {
+                (events::Event::Key { keycode, pressed, .. }, _) => {
                     if !pressed {
                         continue;
                     }
-
+                    let mut other = None;
                     match keycode {
                         SDLK_UP => {
-                            let other = Vec3::new(0., 0.1, 0.);
-                            verticies = verticies.map(|mut v| {
-                                v.point += other;
-                                v
-                            });
-                            verticies_dirty = true;
+                            other = Some(Vec3::new(0., 0.1, 0.));
                         }
-
                         SDLK_DOWN => {
-                            let other = Vec3::new(0., -0.1, 0.);
-                            verticies = verticies.map(|mut v| {
-                                v.point += other;
-                                v
-                            });
-                            verticies_dirty = true;
+                            other = Some(Vec3::new(0., -0.1, 0.));
                         }
-
                         SDLK_LEFT => {
-                            let other = Vec3::new(-0.1, 0., 0.);
-                            verticies = verticies.map(|mut v| {
-                                v.point += other;
-                                v
-                            });
-                            verticies_dirty = true;
+                            other = Some(Vec3::new(-0.1, 0., 0.));
                         }
-
                         SDLK_RIGHT => {
-                            let other = Vec3::new(0.1, 0., 0.);
-                            verticies = verticies.map(|mut v| {
-                                v.point += other;
-                                v
-                            });
-                            verticies_dirty = true;
+                            other = Some(Vec3::new(0.1, 0., 0.));
                         }
-
                         _ => {}
+                    }
+
+                    if let Some(other) = other {
+                        verticies_dirty = true;
+                        for v in verticies.iter_mut() {
+                            v.point += other;
+                        }
                     }
                 }
 
