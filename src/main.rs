@@ -2,11 +2,16 @@ use beryllium::{
     events::{SDLK_DOWN, SDLK_LEFT, SDLK_RIGHT, SDLK_UP},
     *,
 };
+
 use bytemuck::cast_slice;
 use gl33::{global_loader::*, *};
-
-use voxel_engine::{
-    buffer_data, clear_color, polygon_mode, Buffer, BufferType, PolygonMode, ShaderProgram, Vec3, Vertex, VertexArray
+use ultraviolet::Vec3;
+use voxel_engine::render::{
+    PolygonMode,
+    buffer::{Buffer, BufferType, VertexArray, buffer_data},
+    clear_color, polygon_mode,
+    shader::ShaderProgram,
+    vertex::{Vertex, VertexColor},
 };
 
 type TriIndexes = [u32; 3];
@@ -23,12 +28,12 @@ const VERT_SHADER: &str = include_str!("../shaders/vertex.glsl");
 
 const FRAG_SHADER: &str = include_str!("../shaders/fragment.glsl");
 
-fn setup_verticies() -> [Vertex; 4] {
-    let mut verticies: [Vertex; 4] = [
-        Vertex::new(Vec3::new(0.5, 0.5, 0.0)),
-        Vertex::new(Vec3::new(0.5, -0.5, 0.0)),
-        Vertex::new(Vec3::new(-0.5, -0.5, 0.0)),
-        Vertex::new(Vec3::new(-0.5, 0.5, 0.0))
+fn setup_verticies() -> [VertexColor; 4] {
+    let mut verticies: [VertexColor; 4] = [
+        VertexColor::new(Vec3::new(0.5, 0.5, 0.0)),
+        VertexColor::new(Vec3::new(0.5, -0.5, 0.0)),
+        VertexColor::new(Vec3::new(-0.5, -0.5, 0.0)),
+        VertexColor::new(Vec3::new(-0.5, 0.5, 0.0)),
     ];
 
     verticies[0].add_color(Vec3::new(1., 0., 0.));
@@ -85,35 +90,10 @@ fn main() {
         GL_STATIC_DRAW,
     );
 
-    unsafe {
-        let vec3_size: i32 = size_of::<Vec3>().try_into().unwrap();
-
-        // setup position attribute
-        glVertexAttribPointer(
-            0,
-            3,
-            GL_FLOAT,
-            GL_FALSE.0 as u8,
-            2 * vec3_size,
-            0 as *const _,
-        );
-
-        // setup color attribute
-        glVertexAttribPointer(
-            1,
-            3,
-            GL_FLOAT,
-            GL_FALSE.0 as u8,
-            2 * vec3_size,
-            vec3_size as *const _,
-        );
-
-        glEnableVertexAttribArray(0);
-        glEnableVertexAttribArray(1);
-    }
-
     let shader_program = ShaderProgram::from_vert_frag(VERT_SHADER, FRAG_SHADER).unwrap();
     shader_program.use_program();
+
+    VertexColor::configure_attributes();
 
     clear_color(0.2, 0.3, 0.3, 1.0);
     polygon_mode(PolygonMode::Fill);
@@ -123,14 +103,8 @@ fn main() {
         if verticies_dirty {
             verticies_dirty = false;
 
-            let flat: Vec<f32> = verticies.iter()
-                .flat_map(|v| v.to_flat())
-                .collect();
-            buffer_data(
-                BufferType::Array,
-                cast_slice(&flat),
-                GL_STATIC_DRAW,
-            );
+            let flat: Vec<f32> = verticies.iter().flat_map(|v| v.to_flat()).collect();
+            buffer_data(BufferType::Array, cast_slice(&flat), GL_STATIC_DRAW);
         }
 
         unsafe {
@@ -155,7 +129,7 @@ fn main() {
                         SDLK_UP => {
                             let other = Vec3::new(0., 0.1, 0.);
                             verticies = verticies.map(|mut v| {
-                                v.point.add(&other);
+                                v.point += other;
                                 v
                             });
                             verticies_dirty = true;
@@ -164,7 +138,7 @@ fn main() {
                         SDLK_DOWN => {
                             let other = Vec3::new(0., -0.1, 0.);
                             verticies = verticies.map(|mut v| {
-                                v.point.add(&other);
+                                v.point += other;
                                 v
                             });
                             verticies_dirty = true;
@@ -173,7 +147,7 @@ fn main() {
                         SDLK_LEFT => {
                             let other = Vec3::new(-0.1, 0., 0.);
                             verticies = verticies.map(|mut v| {
-                                v.point.add(&other);
+                                v.point += other;
                                 v
                             });
                             verticies_dirty = true;
@@ -182,7 +156,7 @@ fn main() {
                         SDLK_RIGHT => {
                             let other = Vec3::new(0.1, 0., 0.);
                             verticies = verticies.map(|mut v| {
-                                v.point.add(&other);
+                                v.point += other;
                                 v
                             });
                             verticies_dirty = true;
