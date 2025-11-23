@@ -1,5 +1,10 @@
+use bytemuck::cast_slice;
 use gl33::{global_loader::*, *};
-use glam::Vec3;
+use glam::{Mat4, Vec3};
+
+pub trait ShaderUniformType {
+    fn set_uniform(shader_prog: &ShaderProgram, name: &str, val: Self);
+}
 
 /// The types of shader object.
 pub enum ShaderType {
@@ -87,10 +92,8 @@ impl ShaderProgram {
     /// case. It's just less error prone than doing all the steps yourself.
     pub fn from_vert_frag(vert: &str, frag: &str) -> Result<Self, String> {
         let p = Self::new().ok_or_else(|| "Couldn't allocate a program".to_string())?;
-        let v = Shader::from_source(ShaderType::Vertex, vert)
-            .map_err(|e| format!("Vertex Compile Error: {}", e))?;
-        let f = Shader::from_source(ShaderType::Fragment, frag)
-            .map_err(|e| format!("Fragment Compile Error: {}", e))?;
+        let v = Shader::from_source(ShaderType::Vertex, vert).map_err(|e| format!("Vertex Compile Error: {}", e))?;
+        let f = Shader::from_source(ShaderType::Fragment, frag).map_err(|e| format!("Fragment Compile Error: {}", e))?;
         p.attach_shader(&v);
         p.attach_shader(&f);
         p.link_program();
@@ -104,12 +107,24 @@ impl ShaderProgram {
             Err(out)
         }
     }
+}
 
-    pub fn set_uniform3f(&self, name: &str, value: Vec3) {
+impl ShaderUniformType for Vec3 {
+    fn set_uniform(shader_prog: &ShaderProgram, name: &str, val: Self) {
         let cstr = std::ffi::CString::new(name).unwrap();
         unsafe {
-            let location = glGetUniformLocation(self.0, cstr.as_bytes().as_ptr());
-            glUniform3f(location, value.x, value.y, value.z);
+            let location = glGetUniformLocation(shader_prog.0, cstr.as_bytes().as_ptr());
+            glUniform3f(location, val.x, val.y, val.z);
+        }
+    }
+}
+
+impl ShaderUniformType for Mat4 {
+    fn set_uniform(shader_prog: &ShaderProgram, name: &str, val: Self) {
+        let cstr = std::ffi::CString::new(name).unwrap();
+        unsafe {
+            let location = glGetUniformLocation(shader_prog.0, cstr.as_bytes().as_ptr());
+            glUniformMatrix4fv(location, 1, GL_FALSE.0 as u8, val.as_ref().as_ptr());
         }
     }
 }
@@ -123,11 +138,7 @@ impl Shader {
     /// [`ShaderProgram::from_vert_frag`](ShaderProgram::from_vert_frag).
     pub fn new(ty: ShaderType) -> Option<Self> {
         let shader = glCreateShader(GLenum(ty as u32));
-        if shader != 0 {
-            Some(Self(shader))
-        } else {
-            None
-        }
+        if shader != 0 { Some(Self(shader)) } else { None }
     }
 
     /// Assigns a source string to the shader.
@@ -135,12 +146,7 @@ impl Shader {
     /// Replaces any previously assigned source.
     pub fn set_source(&self, src: &str) {
         unsafe {
-            glShaderSource(
-                self.0,
-                1,
-                &(src.as_bytes().as_ptr().cast()),
-                &(src.len().try_into().unwrap()),
-            );
+            glShaderSource(self.0, 1, &(src.as_bytes().as_ptr().cast()), &(src.len().try_into().unwrap()));
         }
     }
 
@@ -204,4 +210,3 @@ impl Shader {
         }
     }
 }
-

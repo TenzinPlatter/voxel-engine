@@ -4,19 +4,26 @@ use glam::{Vec2, Vec3};
 
 pub trait Vertex {
     fn configure_attributes();
+
+    fn position(&self) -> &Vec3;
+    fn position_mut(&mut self) -> &mut Vec3;
+
+    fn translate(&mut self, offset: Vec3) {
+        *self.position_mut() += offset;
+    }
 }
 
 #[repr(C)]
 #[derive(Clone, Copy, Pod, Zeroable)]
 pub struct VertexColor {
-    pub point: Vec3,
+    pub position: Vec3,
     pub color: Vec3,
 }
 
 #[repr(C)]
 #[derive(Clone, Copy, Pod, Zeroable)]
 pub struct VertexTex {
-    pub point: Vec3,
+    pub position: Vec3,
     pub tex: Vec2,
 }
 
@@ -43,11 +50,19 @@ impl Vertex for VertexTex {
             glEnableVertexAttribArray(1);
         }
     }
+
+    fn position(&self) -> &Vec3 {
+        &self.position
+    }
+
+    fn position_mut(&mut self) -> &mut Vec3 {
+        &mut self.position
+    }
 }
 
 impl VertexTex {
     pub fn new(point: Vec3, tex: Vec2) -> Self {
-        Self { point, tex }
+        Self { position: point, tex }
     }
     pub fn set_tex(&mut self, tex: Vec2) {
         self.tex = tex;
@@ -55,6 +70,14 @@ impl VertexTex {
 }
 
 impl Vertex for VertexColor {
+    fn position(&self) -> &Vec3 {
+        &self.position
+    }
+
+    fn position_mut(&mut self) -> &mut Vec3 {
+        &mut self.position
+    }
+
     fn configure_attributes() {
         unsafe {
             let vec3_size: i32 = size_of::<Vec3>() as i32;
@@ -73,7 +96,7 @@ impl Vertex for VertexColor {
 
 impl VertexColor {
     pub fn new(point: Vec3, color: Vec3) -> Self {
-        Self { point, color }
+        Self { position: point, color }
     }
 
     pub fn set_color(&mut self, color: Vec3) {
