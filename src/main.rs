@@ -106,9 +106,12 @@ fn main() {
 
     unsafe { load_global_gl(&|p_name| win.get_proc_address(p_name)) };
 
-    // Set viewport to match window size
+    // Get actual drawable size (may differ from window size)
+    let (drawable_width, drawable_height) = win.get_drawable_size();
+
+    // Set viewport to match actual drawable size
     unsafe {
-        glViewport(0, 0, WIDTH, HEIGHT);
+        glViewport(0, 0, drawable_width, drawable_height);
     }
 
     let vao = VertexArray::new().expect("Failed to create VAO");
@@ -148,7 +151,12 @@ fn main() {
 
         let model = Mat4::IDENTITY * Mat4::from_rotation_x(degrees_to_radians(-55.0));
         let view = Mat4::IDENTITY * Mat4::from_translation(Vec3::new(0.0, 0.0, -3.0));
-        let proj = Mat4::perspective_rh_gl(degrees_to_radians(45.0), WIDTH as f32 / HEIGHT as f32, 0.1, 100.0);
+        let proj = Mat4::perspective_rh_gl(
+            degrees_to_radians(45.0),
+            drawable_width as f32 / drawable_height as f32,
+            0.1,
+            100.0
+        );
 
         // send the data to buffer
         if vertices_dirty {
@@ -165,13 +173,12 @@ fn main() {
             let mut cube_model = Mat4::IDENTITY;
             cube_model *= Mat4::from_translation(*cube_pos);
             cube_model *= Mat4::from_axis_angle(
-                Vec3::new(1.0, 0.3, 0.5),
-                i as f32
-                    * if i % 3 == 0 {
-                        time * degrees_to_radians(55.0)
-                    } else {
-                        degrees_to_radians(20.0)
-                    },
+                Vec3::new(1.0, 0.3, 0.5).normalize(),
+                if i % 3 == 0 {
+                    time * degrees_to_radians(120.0)
+                } else {
+                    i as f32 * degrees_to_radians(20.0)
+                },
             );
 
             Mat4::set_uniform(&shader_program, "model", cube_model);
