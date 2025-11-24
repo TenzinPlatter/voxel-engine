@@ -2,16 +2,11 @@ use beryllium::{events::*, *};
 
 use bytemuck::cast_slice;
 use gl33::{global_loader::*, *};
-use glam::{Mat4, Quat, Vec2, Vec3};
+use glam::{Mat4, Vec2, Vec3};
 use voxel_engine::{
     degrees_to_radians,
     render::{
-        PolygonMode,
-        buffer::{Buffer, BufferType, VertexArray, buffer_data},
-        clear_color, polygon_mode,
-        shader::{ShaderProgram, ShaderUniformType},
-        texture::Texture,
-        vertex::{Vertex, VertexColor, VertexTex},
+        buffer::{buffer_data, Buffer, BufferType, VertexArray}, camera::Camera, clear_color, polygon_mode, shader::{ShaderProgram, ShaderUniformType}, texture::Texture, vertex::{Vertex, VertexTex}, PolygonMode
     },
 };
 
@@ -69,7 +64,7 @@ fn main() {
         VertexTex::new(Vec3::new(-0.5, 0.5, 0.5), Vec2::new(0.0, 0.0)),
         VertexTex::new(Vec3::new(-0.5, 0.5, -0.5), Vec2::new(0.0, 1.)),
     ];
-    let mut trans = Mat4::IDENTITY;
+    let trans = Mat4::IDENTITY;
     let cube_positions = [
         Vec3::new(0.0, 0.0, 0.0),
         Vec3::new(2.0, 5.0, -15.0),
@@ -105,6 +100,8 @@ fn main() {
     win.set_swap_interval(video::GlSwapInterval::Vsync).unwrap();
 
     unsafe { load_global_gl(&|p_name| win.get_proc_address(p_name)) };
+
+    sdl.set_relative_mouse_mode(true).unwrap();
 
     // Get actual drawable size (may differ from window size)
     let (drawable_width, drawable_height) = win.get_drawable_size();
@@ -142,15 +139,39 @@ fn main() {
         glEnable(GL_DEPTH_TEST);
     }
 
+    // Create camera looking at the scene
+    let mut camera = Camera::looking_at(Vec3::new(0.0, 0.0, 3.0), Vec3::ZERO);
+
+    // Delta time tracking
+    let mut last_frame_time = sdl.get_ticks();
+
     'main_loop: loop {
+        // Calculate delta time
+        let current_frame_time = sdl.get_ticks();
+        let delta_time = (current_frame_time - last_frame_time) as f32 / 1000.0;
+        last_frame_time = current_frame_time;
         unsafe {
             glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
             // glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0 as *const _);
             // glDrawArrays(GL_TRIANGLES, 0, 36);
         }
 
-        let model = Mat4::IDENTITY * Mat4::from_rotation_x(degrees_to_radians(-55.0));
-        let view = Mat4::IDENTITY * Mat4::from_translation(Vec3::new(0.0, 0.0, -3.0));
+        while let Some(event) = sdl.poll_events() {
+            match event {
+                (events::Event::Quit, _) => break 'main_loop,
+                (events::Event::Key { keycode, pressed, .. }, _) => {
+                    if pressed {
+                        process_input(&mut camera, keycode, delta_time);
+                    }
+                }
+                (events::Event::MouseMotion { x_delta, y_delta, .. }, _) => {
+                    camera.process_mouse(x_delta as f32, -y_delta as f32);
+                }
+                _ => {}
+            }
+        }
+
+        let view = camera.view_matrix();
         let proj = Mat4::perspective_rh_gl(
             degrees_to_radians(45.0),
             drawable_width as f32 / drawable_height as f32,
@@ -188,61 +209,21 @@ fn main() {
             }
         }
 
-        // let time = sdl.get_ticks() as f32 / 1000.0;
-        // model *= Mat4::from_axis_angle(Vec3::new(0.5, 1.0, 0.0), time * degrees_to_radians(55.0));
-
-        // Mat4::set_uniform(&shader_program, "model", model);
-
         Mat4::set_uniform(&shader_program, "transform", trans);
 
-        while let Some(event) = sdl.poll_events() {
-            match event {
-                (events::Event::Quit, _) => break 'main_loop,
-                (events::Event::Key { keycode, pressed, .. }, _) => {
-                    if !pressed {
-                        continue;
-                    }
-                    // let mut other = None;
-                    // match keycode {
-                    //     SDLK_UP => {
-                    //         other = Some(Vec3::new(0., 0.1, 0.));
-                    //     }
-                    //     SDLK_DOWN => {
-                    //         other = Some(Vec3::new(0., -0.1, 0.));
-                    //     }
-                    //     SDLK_LEFT => {
-                    //         other = Some(Vec3::new(-0.1, 0., 0.));
-                    //     }
-                    //     SDLK_RIGHT => {
-                    //         other = Some(Vec3::new(0.1, 0., 0.));
-                    //     }
-                    //     #[allow(non_upper_case_globals)]
-                    //     SDLK_r => {
-                    //         trans *= Mat4::from_rotation_z(degrees_to_radians(90.));
-                    //     }
-                    //     // plus doesn't work for some reason, probably is sending equals and shift
-                    //     // instead of plus
-                    //     SDLK_EQUALS => {
-                    //         trans *= Mat4::from_scale(Vec3::new(1.1, 1.1, 1.1));
-                    //     }
-                    //     SDLK_MINUS => {
-                    //         trans *= Mat4::from_scale(Vec3::new(0.9, 0.9, 0.9));
-                    //     }
-                    //     _ => {}
-                    // }
-
-                    // if let Some(other) = other {
-                    //     vertices_dirty = true;
-                    //     for v in vertices.iter_mut() {
-                    //         v.translate(other);
-                    //     }
-                    // }
-                }
-
-                _ => {}
-            }
-        }
-
         win.swap_window();
+    }
+}
+
+fn process_input(camera: &mut Camera, keycode: SDL_Keycode, delta_time: f32) {
+    #[allow(non_upper_case_globals)]
+    match keycode {
+        SDLK_w => camera.move_forward(delta_time),
+        SDLK_s => camera.move_backward(delta_time),
+        SDLK_a => camera.move_left(delta_time),
+        SDLK_d => camera.move_right(delta_time),
+        SDLK_SPACE => camera.move_up(delta_time),
+        SDLK_LSHIFT | SDLK_RSHIFT => camera.move_down(delta_time),
+        _ => {}
     }
 }
