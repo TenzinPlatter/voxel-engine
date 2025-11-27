@@ -30,7 +30,7 @@ impl Camera {
             front: Vec3::new(0.0, 0.0, -1.0),
             right: Vec3::X,
             up: Vec3::Y,
-            movement_speed: 5.0,
+            movement_speed: 100.0,
             mouse_sensitivity: 0.1,
         };
         camera.update_vectors();
@@ -52,7 +52,7 @@ impl Camera {
             front: direction,
             right: Vec3::X,
             up: Vec3::Y,
-            movement_speed: 5.0,
+            movement_speed: 100.0,
             mouse_sensitivity: 0.1,
         };
         camera.update_vectors();

@@ -1,7 +1,13 @@
+pub mod engine;
 pub mod render;
 
-use beryllium::{
-    video::GlWindow, *
+use beryllium::{video::GlWindow, *};
+use bytemuck::cast_slice;
+use glam::IVec3;
+
+use crate::{
+    engine::world::World,
+    render::{draw_voxel_at, get_voxel_verticies, mesh::Mesh, shader::ShaderProgram},
 };
 
 const WIDTH: i32 = 800;
@@ -30,7 +36,7 @@ pub fn init_sdl_and_win() -> (Sdl, GlWindow) {
     };
 
     let win = sdl.create_gl_window(win_args).expect("Failed to create window");
-    win.set_swap_interval(video::GlSwapInterval::Vsync).unwrap();
+    win.set_swap_interval(video::GlSwapInterval::Immediate).unwrap();
 
     (sdl, win)
 }
@@ -41,4 +47,16 @@ pub fn degrees_to_radians(degrees: f32) -> f32 {
 
 pub fn radians_to_degrees(radians: f32) -> f32 {
     radians * 180.0 / std::f32::consts::PI
+}
+
+pub fn create_mesh(world: &mut World) {
+    let mut verticies = vec![];
+
+    for z in 0..32 {
+        for x in 0..32 {
+            verticies.extend(get_voxel_verticies(&IVec3::new(x, 0, z)));
+        }
+    }
+
+    world.mesh = Some(Mesh::new(&verticies));
 }

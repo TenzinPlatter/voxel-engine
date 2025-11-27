@@ -1,24 +1,22 @@
+use std::io::{self, Write};
+
 use beryllium::{events::*, *};
 
-use bytemuck::cast_slice;
 use gl33::{global_loader::*, *};
-use glam::{Mat4, Vec2, Vec3};
+use glam::{IVec3, Mat4, Vec3};
 use voxel_engine::{
-    degrees_to_radians,
+    create_mesh, degrees_to_radians,
+    engine::world::World,
     render::{
-        PolygonMode,
-        buffer::{Buffer, BufferType, VertexArray, buffer_data},
+        self, PolygonMode,
+        buffer::{Buffer, BufferType, VertexArray},
         camera::Camera,
-        clear_color, polygon_mode, render_cube_at,
+        clear_color, draw_voxel_at, polygon_mode,
         shader::{ShaderProgram, ShaderUniformType},
         texture::Texture,
         vertex::{Vertex, VertexTex},
     },
 };
-
-type TriIndexes = [u32; 3];
-
-const INDICES: [TriIndexes; 2] = [[0, 1, 3], [1, 2, 3]];
 
 const VERT_SHADER: &str = include_str!("../shaders/vertex.glsl");
 
@@ -26,18 +24,6 @@ const FRAG_SHADER: &str = include_str!("../shaders/fragment.glsl");
 
 fn main() {
     let trans = Mat4::IDENTITY;
-    let cube_positions = [
-        Vec3::new(0.0, 0.0, 0.0),
-        Vec3::new(2.0, 5.0, -15.0),
-        Vec3::new(-1.5, -2.2, -2.5),
-        Vec3::new(-3.8, -2.0, -12.3),
-        Vec3::new(2.4, -0.4, -3.5),
-        Vec3::new(-1.7, 3.0, -7.5),
-        Vec3::new(1.3, -2.0, -2.5),
-        Vec3::new(1.5, 2.0, -2.5),
-        Vec3::new(1.5, 0.2, -1.5),
-        Vec3::new(-1.3, 1.0, -1.5),
-    ];
 
     let (sdl, win) = voxel_engine::init_sdl_and_win();
 
@@ -53,18 +39,6 @@ fn main() {
         glViewport(0, 0, drawable_width, drawable_height);
     }
 
-    let vao = VertexArray::new().expect("Failed to create VAO");
-    vao.bind();
-
-    // generate and bind vertex buffer object
-    let vbo = Buffer::new().expect("Failed to create VBO");
-    vbo.bind(BufferType::Array);
-
-    // generate element buffer object to store triangle indicies
-    let ebo = Buffer::new().expect("Failed to create EBO");
-    ebo.bind(BufferType::ElementArray);
-    buffer_data(BufferType::ElementArray, bytemuck::cast_slice(&INDICES), GL_STATIC_DRAW);
-
     let tex = Texture::new().expect("Failed to create texture");
     tex.bind();
     Texture::set_image("assets/wood_container.jpg");
@@ -72,6 +46,7 @@ fn main() {
     let shader_program = ShaderProgram::from_vert_frag(VERT_SHADER, FRAG_SHADER).unwrap();
     shader_program.use_program();
 
+    let mut world = World::default();
     VertexTex::configure_attributes();
 
     clear_color(0.2, 0.3, 0.3, 1.0);
@@ -82,7 +57,7 @@ fn main() {
     }
 
     // Create camera looking at the scene
-    let mut camera = Camera::looking_at(Vec3::new(0.0, 0.0, 3.0), Vec3::ZERO);
+    let mut camera = Camera::looking_at(Vec3::new(-3.0, 10.0, -3.0), Vec3::ZERO);
 
     // Delta time tracking
     let mut last_frame_time = sdl.get_ticks();
@@ -92,18 +67,28 @@ fn main() {
         let current_frame_time = sdl.get_ticks();
         let delta_time = (current_frame_time - last_frame_time) as f32 / 1000.0;
         last_frame_time = current_frame_time;
+
         unsafe {
             glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-            // glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0 as *const _);
-            // glDrawArrays(GL_TRIANGLES, 0, 36);
         }
 
         while let Some(event) = sdl.poll_events() {
             match event {
                 (events::Event::Quit, _) => break 'main_loop,
                 (events::Event::Key { keycode, pressed, .. }, _) => {
-                    if pressed {
-                        process_input(&mut camera, keycode, delta_time);
+                    if !pressed {
+                        continue;
+                    }
+                    match keycode {
+                        SDLK_SPACE => {
+                            let pos = camera.position.as_ivec3();
+                            if world.voxels.contains(&pos) {
+                                world.voxels.remove(&pos);
+                            } else {
+                                world.voxels.insert(pos);
+                            }
+                        }
+                        _ => process_input(&mut camera, keycode, delta_time),
                     }
                 }
                 (events::Event::MouseMotion { x_delta, y_delta, .. }, _) => {
@@ -123,22 +108,14 @@ fn main() {
 
         Mat4::set_uniform(&shader_program, "view", view);
         Mat4::set_uniform(&shader_program, "proj", proj);
-
-        let time = sdl.get_ticks() as f32 / 1000.0;
-        for (i, cube_pos) in cube_positions.iter().enumerate() {
-            let rotation_mat = Mat4::from_axis_angle(
-                Vec3::new(1.0, 0.3, 0.5).normalize(),
-                if i % 3 == 0 {
-                    time * degrees_to_radians(120.0)
-                } else {
-                    i as f32 * degrees_to_radians(20.0)
-                },
-            );
-
-            render_cube_at(&shader_program, *cube_pos, Some(rotation_mat));
-        }
-
         Mat4::set_uniform(&shader_program, "transform", trans);
+
+        if let Some(mesh) = &world.mesh {
+            mesh.draw();
+        } else {
+            create_mesh(&mut world);
+            // just let it get drawn next frame
+        }
 
         win.swap_window();
     }
