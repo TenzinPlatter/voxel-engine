@@ -6,17 +6,17 @@ use glam::{Mat4, Vec2, Vec3};
 use voxel_engine::{
     degrees_to_radians,
     render::{
-        buffer::{buffer_data, Buffer, BufferType, VertexArray}, camera::Camera, clear_color, polygon_mode, shader::{ShaderProgram, ShaderUniformType}, texture::Texture, vertex::{Vertex, VertexTex}, PolygonMode
+        PolygonMode,
+        buffer::{Buffer, BufferType, VertexArray, buffer_data},
+        camera::Camera,
+        clear_color, polygon_mode, render_cube_at,
+        shader::{ShaderProgram, ShaderUniformType},
+        texture::Texture,
+        vertex::{Vertex, VertexTex},
     },
 };
 
 type TriIndexes = [u32; 3];
-
-const WIDTH: i32 = 800;
-const HEIGHT: i32 = 600;
-
-// make window float with my niri setup
-const WINDOW_TITLE: &str = "float";
 
 const INDICES: [TriIndexes; 2] = [[0, 1, 3], [1, 2, 3]];
 
@@ -25,45 +25,6 @@ const VERT_SHADER: &str = include_str!("../shaders/vertex.glsl");
 const FRAG_SHADER: &str = include_str!("../shaders/fragment.glsl");
 
 fn main() {
-    let mut vertices_dirty = true;
-    let vertices = [
-        VertexTex::new(Vec3::new(-0.5, -0.5, -0.5), Vec2::new(0.0, 0.0)),
-        VertexTex::new(Vec3::new(0.5, -0.5, -0.5), Vec2::new(1.0, 0.0)),
-        VertexTex::new(Vec3::new(0.5, 0.5, -0.5), Vec2::new(1.0, 1.0)),
-        VertexTex::new(Vec3::new(0.5, 0.5, -0.5), Vec2::new(1.0, 1.0)),
-        VertexTex::new(Vec3::new(-0.5, 0.5, -0.5), Vec2::new(0.0, 1.0)),
-        VertexTex::new(Vec3::new(-0.5, -0.5, -0.5), Vec2::new(0.0, 0.0)),
-        VertexTex::new(Vec3::new(-0.5, -0.5, 0.5), Vec2::new(0.0, 0.0)),
-        VertexTex::new(Vec3::new(0.5, -0.5, 0.5), Vec2::new(1.0, 0.0)),
-        VertexTex::new(Vec3::new(0.5, 0.5, 0.5), Vec2::new(1.0, 1.0)),
-        VertexTex::new(Vec3::new(0.5, 0.5, 0.5), Vec2::new(1.0, 1.0)),
-        VertexTex::new(Vec3::new(-0.5, 0.5, 0.5), Vec2::new(0.0, 1.0)),
-        VertexTex::new(Vec3::new(-0.5, -0.5, 0.5), Vec2::new(0.0, 0.0)),
-        VertexTex::new(Vec3::new(-0.5, 0.5, 0.5), Vec2::new(1.0, 0.0)),
-        VertexTex::new(Vec3::new(-0.5, 0.5, -0.5), Vec2::new(1.0, 1.0)),
-        VertexTex::new(Vec3::new(-0.5, -0.5, -0.5), Vec2::new(0.0, 1.0)),
-        VertexTex::new(Vec3::new(-0.5, -0.5, -0.5), Vec2::new(0.0, 1.0)),
-        VertexTex::new(Vec3::new(-0.5, -0.5, 0.5), Vec2::new(0.0, 0.0)),
-        VertexTex::new(Vec3::new(-0.5, 0.5, 0.5), Vec2::new(1.0, 0.0)),
-        VertexTex::new(Vec3::new(0.5, 0.5, 0.5), Vec2::new(1.0, 0.0)),
-        VertexTex::new(Vec3::new(0.5, 0.5, -0.5), Vec2::new(1.0, 1.0)),
-        VertexTex::new(Vec3::new(0.5, -0.5, -0.5), Vec2::new(0.0, 1.0)),
-        VertexTex::new(Vec3::new(0.5, -0.5, -0.5), Vec2::new(0.0, 1.0)),
-        VertexTex::new(Vec3::new(0.5, -0.5, 0.5), Vec2::new(0.0, 0.0)),
-        VertexTex::new(Vec3::new(0.5, 0.5, 0.5), Vec2::new(1.0, 0.0)),
-        VertexTex::new(Vec3::new(-0.5, -0.5, -0.5), Vec2::new(0.0, 1.0)),
-        VertexTex::new(Vec3::new(0.5, -0.5, -0.5), Vec2::new(1.0, 1.0)),
-        VertexTex::new(Vec3::new(0.5, -0.5, 0.5), Vec2::new(1.0, 0.0)),
-        VertexTex::new(Vec3::new(0.5, -0.5, 0.5), Vec2::new(1.0, 0.0)),
-        VertexTex::new(Vec3::new(-0.5, -0.5, 0.5), Vec2::new(0.0, 0.0)),
-        VertexTex::new(Vec3::new(-0.5, -0.5, -0.5), Vec2::new(0.0, 1.0)),
-        VertexTex::new(Vec3::new(-0.5, 0.5, -0.5), Vec2::new(0.0, 1.0)),
-        VertexTex::new(Vec3::new(0.5, 0.5, -0.5), Vec2::new(1.0, 1.0)),
-        VertexTex::new(Vec3::new(0.5, 0.5, 0.5), Vec2::new(1.0, 0.0)),
-        VertexTex::new(Vec3::new(0.5, 0.5, 0.5), Vec2::new(1.0, 0.0)),
-        VertexTex::new(Vec3::new(-0.5, 0.5, 0.5), Vec2::new(0.0, 0.0)),
-        VertexTex::new(Vec3::new(-0.5, 0.5, -0.5), Vec2::new(0.0, 1.)),
-    ];
     let trans = Mat4::IDENTITY;
     let cube_positions = [
         Vec3::new(0.0, 0.0, 0.0),
@@ -78,26 +39,7 @@ fn main() {
         Vec3::new(-1.3, 1.0, -1.5),
     ];
 
-    let sdl = Sdl::init(init::InitFlags::EVERYTHING);
-
-    sdl.set_gl_context_major_version(3).unwrap();
-    sdl.set_gl_context_minor_version(3).unwrap();
-    sdl.set_gl_profile(video::GlProfile::Core).unwrap();
-
-    #[cfg(target_os = "macos")]
-    sdl.set_gl_context_flags(video::GlContextFlags::FORWARD_COMPATIBLE).unwrap();
-
-    let win_args = video::CreateWinArgs {
-        title: WINDOW_TITLE,
-        width: WIDTH,
-        height: HEIGHT,
-        allow_high_dpi: false,
-        borderless: false,
-        resizable: true,
-    };
-
-    let win = sdl.create_gl_window(win_args).expect("Failed to create window");
-    win.set_swap_interval(video::GlSwapInterval::Vsync).unwrap();
+    let (sdl, win) = voxel_engine::init_sdl_and_win();
 
     unsafe { load_global_gl(&|p_name| win.get_proc_address(p_name)) };
 
@@ -176,24 +118,15 @@ fn main() {
             degrees_to_radians(45.0),
             drawable_width as f32 / drawable_height as f32,
             0.1,
-            100.0
+            100.0,
         );
-
-        // send the data to buffer
-        if vertices_dirty {
-            vertices_dirty = false;
-
-            buffer_data(BufferType::Array, cast_slice(&vertices), GL_STATIC_DRAW);
-        }
 
         Mat4::set_uniform(&shader_program, "view", view);
         Mat4::set_uniform(&shader_program, "proj", proj);
 
         let time = sdl.get_ticks() as f32 / 1000.0;
         for (i, cube_pos) in cube_positions.iter().enumerate() {
-            let mut cube_model = Mat4::IDENTITY;
-            cube_model *= Mat4::from_translation(*cube_pos);
-            cube_model *= Mat4::from_axis_angle(
+            let rotation_mat = Mat4::from_axis_angle(
                 Vec3::new(1.0, 0.3, 0.5).normalize(),
                 if i % 3 == 0 {
                     time * degrees_to_radians(120.0)
@@ -202,11 +135,7 @@ fn main() {
                 },
             );
 
-            Mat4::set_uniform(&shader_program, "model", cube_model);
-
-            unsafe {
-                glDrawArrays(GL_TRIANGLES, 0, 36);
-            }
+            render_cube_at(&shader_program, *cube_pos, Some(rotation_mat));
         }
 
         Mat4::set_uniform(&shader_program, "transform", trans);
