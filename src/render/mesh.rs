@@ -1,9 +1,8 @@
-use std::ptr;
-
 use bytemuck::cast_slice;
-use gl33::{GL_STATIC_DRAW, GL_TRIANGLES, GL_UNSIGNED_INT, global_loader::*};
+use gl33::{GL_STATIC_DRAW, GL_TRIANGLES, global_loader::*};
+use glam::Mat4;
 
-use crate::render::{buffer::{buffer_data, Buffer, BufferType, VertexArray}, vertex::VertexTex};
+use crate::render::{buffer::{buffer_data, Buffer, BufferType, VertexArray}, shader::{ShaderProgram, ShaderUniformType}, texture::Texture, vertex::{Vertex, VertexTex}};
 
 pub struct Mesh {
     vao: VertexArray,
@@ -26,10 +25,11 @@ impl Mesh {
         }
     }
 
-    pub fn draw(&self) {
+    pub fn draw(&self, shader_program: &ShaderProgram) {
         glBindVertexArray(self.vao.0);
+        Mat4::set_uniform(shader_program, "model", Mat4::IDENTITY);
         unsafe {
-            glDrawElements(GL_TRIANGLES, self.nverticies as i32, GL_UNSIGNED_INT, ptr::null());
+            glDrawArrays(GL_TRIANGLES, 0, self.nverticies as i32);
         }
     }
 }

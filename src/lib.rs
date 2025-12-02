@@ -2,12 +2,11 @@ pub mod engine;
 pub mod render;
 
 use beryllium::{video::GlWindow, *};
-use bytemuck::cast_slice;
 use glam::IVec3;
 
 use crate::{
     engine::world::World,
-    render::{draw_voxel_at, get_voxel_verticies, mesh::Mesh, shader::ShaderProgram},
+    render::{get_voxel_verticies, mesh::Mesh},
 };
 
 const WIDTH: i32 = 800;

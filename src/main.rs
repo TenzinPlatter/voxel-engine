@@ -1,17 +1,14 @@
-use std::io::{self, Write};
-
 use beryllium::{events::*, *};
 
 use gl33::{global_loader::*, *};
-use glam::{IVec3, Mat4, Vec3};
+use glam::{Mat4, Vec3};
 use voxel_engine::{
     create_mesh, degrees_to_radians,
     engine::world::World,
     render::{
-        self, PolygonMode,
-        buffer::{Buffer, BufferType, VertexArray},
+        PolygonMode,
         camera::Camera,
-        clear_color, draw_voxel_at, polygon_mode,
+        clear_color, polygon_mode,
         shader::{ShaderProgram, ShaderUniformType},
         texture::Texture,
         vertex::{Vertex, VertexTex},
@@ -39,15 +36,17 @@ fn main() {
         glViewport(0, 0, drawable_width, drawable_height);
     }
 
+    let mut world = World::new(VERT_SHADER, FRAG_SHADER);
+    create_mesh(&mut world);
+
+    VertexTex::configure_attributes();
+
     let tex = Texture::new().expect("Failed to create texture");
     tex.bind();
     Texture::set_image("assets/wood_container.jpg");
 
-    let shader_program = ShaderProgram::from_vert_frag(VERT_SHADER, FRAG_SHADER).unwrap();
-    shader_program.use_program();
-
-    let mut world = World::default();
-    VertexTex::configure_attributes();
+    // let shader_program = ShaderProgram::from_vert_frag(VERT_SHADER, FRAG_SHADER).unwrap();
+    // shader_program.use_program();
 
     clear_color(0.2, 0.3, 0.3, 1.0);
     polygon_mode(PolygonMode::Fill);
@@ -106,16 +105,15 @@ fn main() {
             100.0,
         );
 
-        Mat4::set_uniform(&shader_program, "view", view);
-        Mat4::set_uniform(&shader_program, "proj", proj);
-        Mat4::set_uniform(&shader_program, "transform", trans);
+        Mat4::set_uniform(&world.shader_program, "view", view);
+        Mat4::set_uniform(&world.shader_program, "proj", proj);
+        Mat4::set_uniform(&world.shader_program, "transform", trans);
 
-        if let Some(mesh) = &world.mesh {
-            mesh.draw();
-        } else {
+
+        if world.mesh.is_none() {
             create_mesh(&mut world);
-            // just let it get drawn next frame
         }
+        world.draw();
 
         win.swap_window();
     }
