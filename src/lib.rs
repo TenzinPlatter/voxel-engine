@@ -56,6 +56,4 @@ pub fn create_mesh(world: &mut World) {
             verticies.extend(get_voxel_verticies(&IVec3::new(x, 0, z)));
         }
     }
-
-    world.mesh = Some(Mesh::new(&verticies));
 }

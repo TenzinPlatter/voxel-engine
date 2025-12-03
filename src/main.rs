@@ -81,10 +81,10 @@ fn main() {
                     match keycode {
                         SDLK_SPACE => {
                             let pos = camera.position.as_ivec3();
-                            if world.voxels.contains(&pos) {
-                                world.voxels.remove(&pos);
+                            if world.voxel_positions.contains(&pos) {
+                                world.voxel_positions.remove(&pos);
                             } else {
-                                world.voxels.insert(pos);
+                                world.voxel_positions.insert(pos);
                             }
                         }
                         _ => process_input(&mut camera, keycode, delta_time),

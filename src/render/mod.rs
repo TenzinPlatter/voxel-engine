@@ -4,6 +4,7 @@ pub mod mesh;
 pub mod shader;
 pub mod texture;
 pub mod vertex;
+pub mod renderer;
 
 use bytemuck::cast_slice;
 use gl33::{global_loader::*, *};
@@ -12,7 +13,7 @@ use glam::{IVec3, Mat4, Vec2, Vec3};
 use crate::render::{
     buffer::buffer_data,
     shader::{ShaderProgram, ShaderUniformType},
-    vertex::{VertexColor, VertexTex},
+    vertex::VertexTex,
 };
 
 /// The polygon display modes you can set.
