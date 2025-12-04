@@ -1,5 +1,7 @@
 use glam::{Mat4, Vec3};
 
+use crate::input::InputState;
+
 const WORLD_UP: Vec3 = Vec3::Y;
 
 pub struct Camera {
@@ -18,6 +20,8 @@ pub struct Camera {
     // Camera settings
     pub movement_speed: f32,
     pub mouse_sensitivity: f32,
+
+    pub input_state: InputState,
 }
 
 impl Camera {
@@ -30,8 +34,9 @@ impl Camera {
             front: Vec3::new(0.0, 0.0, -1.0),
             right: Vec3::X,
             up: Vec3::Y,
-            movement_speed: 100.0,
+            movement_speed: 20.0,
             mouse_sensitivity: 0.1,
+            input_state: InputState::default(),
         };
         camera.update_vectors();
         camera
@@ -52,8 +57,9 @@ impl Camera {
             front: direction,
             right: Vec3::X,
             up: Vec3::Y,
-            movement_speed: 100.0,
+            movement_speed: 20.0,
             mouse_sensitivity: 0.1,
+            input_state: InputState::default()
         };
         camera.update_vectors();
         camera
@@ -65,34 +71,34 @@ impl Camera {
     }
 
     /// Move camera forward (in the direction it's looking, ignoring Y)
-    pub fn move_forward(&mut self, delta_time: f32) {
+    fn move_forward(&mut self, delta_time: f32) {
         let forward = Vec3::new(self.front.x, 0.0, self.front.z).normalize();
         self.position += forward * self.movement_speed * delta_time;
     }
 
-    /// Move camera backward
-    pub fn move_backward(&mut self, delta_time: f32) {
+    /// Move camera back
+    fn move_back(&mut self, delta_time: f32) {
         let forward = Vec3::new(self.front.x, 0.0, self.front.z).normalize();
         self.position -= forward * self.movement_speed * delta_time;
     }
 
     /// Move camera left (strafe)
-    pub fn move_left(&mut self, delta_time: f32) {
+    fn move_left(&mut self, delta_time: f32) {
         self.position -= self.right * self.movement_speed * delta_time;
     }
 
     /// Move camera right (strafe)
-    pub fn move_right(&mut self, delta_time: f32) {
+    fn move_right(&mut self, delta_time: f32) {
         self.position += self.right * self.movement_speed * delta_time;
     }
 
     /// Move camera up
-    pub fn move_up(&mut self, delta_time: f32) {
+    fn move_up(&mut self, delta_time: f32) {
         self.position += WORLD_UP * self.movement_speed * delta_time;
     }
 
     /// Move camera down
-    pub fn move_down(&mut self, delta_time: f32) {
+    fn move_down(&mut self, delta_time: f32) {
         self.position -= WORLD_UP * self.movement_speed * delta_time;
     }
 
@@ -123,5 +129,26 @@ impl Camera {
         // Recalculate right and up vectors
         self.right = self.front.cross(WORLD_UP).normalize();
         self.up = self.right.cross(self.front).normalize();
+    }
+
+    pub fn handle_move(&mut self, delta_time: f32) {
+        if self.input_state.forward {
+            self.move_forward(delta_time);
+        }
+        if self.input_state.back {
+            self.move_back(delta_time);
+        }
+        if self.input_state.left {
+            self.move_left(delta_time);
+        }
+        if self.input_state.right {
+            self.move_right(delta_time);
+        }
+        if self.input_state.up {
+            self.move_up(delta_time);
+        }
+        if self.input_state.down {
+            self.move_down(delta_time);
+        }
     }
 }

@@ -43,7 +43,7 @@ fn main() {
     tex.bind();
     Texture::set_image("assets/wood_container.jpg");
 
-    world.mesh = Some(create_mesh(tex));
+    create_mesh(&mut world, tex);
 
     clear_color(0.2, 0.3, 0.3, 1.0);
     polygon_mode(PolygonMode::Fill);
@@ -72,47 +72,33 @@ fn main() {
             match event {
                 (events::Event::Quit, _) => break 'main_loop,
                 (events::Event::Key { keycode, pressed, .. }, _) => {
-                    if !pressed {
-                        continue;
-                    }
-                    match keycode {
-                        SDLK_SPACE => {
-                            let pos = camera.position.as_ivec3();
-                            if !world.set_voxel(pos) {
-                                // was not added and therefore already existed, so remove it
-                                world.remove_voxel(&pos);
-                            }
-                        }
-                        _ => process_input(&mut camera, keycode, delta_time),
-                    }
+                    camera.input_state.set_key(keycode, pressed);
                 }
                 (events::Event::MouseMotion { x_delta, y_delta, .. }, _) => {
                     camera.process_mouse(x_delta as f32, -y_delta as f32);
+                }
+                (events::Event::MouseButton { button, pressed, .. }, _) => {
+                    if pressed && button == 1 {
+                        let pos = camera.position.as_ivec3();
+                        if !world.set_voxel(pos) {
+                            // was not added and therefore already existed, so remove it
+                            world.remove_voxel(&pos);
+                        }
+                        world.rebuild_mesh(Some(tex));
+                    }
                 }
                 _ => {}
             }
         }
 
-        if let Some(mesh) = &world.mesh {
-            renderer.render_mesh(mesh, &camera, &viewport);
-        } else {
-            // shouldn't actually happen
-            world.mesh = Some(create_mesh(tex));
-        }
+        camera.handle_move(delta_time);
+
+        renderer.render_mesh(
+            world.mesh.as_ref().expect("Mesh shouldve been build on world init"),
+            &camera,
+            &viewport,
+        );
 
         win.swap_window();
-    }
-}
-
-fn process_input(camera: &mut Camera, keycode: SDL_Keycode, delta_time: f32) {
-    #[allow(non_upper_case_globals)]
-    match keycode {
-        SDLK_w => camera.move_forward(delta_time),
-        SDLK_s => camera.move_backward(delta_time),
-        SDLK_a => camera.move_left(delta_time),
-        SDLK_d => camera.move_right(delta_time),
-        SDLK_SPACE => camera.move_up(delta_time),
-        SDLK_LSHIFT | SDLK_RSHIFT => camera.move_down(delta_time),
-        _ => {}
     }
 }
