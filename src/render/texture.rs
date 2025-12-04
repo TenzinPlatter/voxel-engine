@@ -1,5 +1,6 @@
 use gl33::{global_loader::*, *};
 
+#[derive(Clone, Copy)]
 pub struct Texture {
     pub id: u32,
 }

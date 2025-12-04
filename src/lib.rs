@@ -2,11 +2,11 @@ pub mod engine;
 pub mod render;
 
 use beryllium::{video::GlWindow, *};
-use glam::IVec3;
+use glam::{IVec3, Mat4};
 
 use crate::{
     engine::world::World,
-    render::{get_voxel_verticies, mesh::Mesh},
+    render::{get_voxel_verticies, mesh::Mesh, texture::Texture},
 };
 
 const WIDTH: i32 = 800;
@@ -48,7 +48,7 @@ pub fn radians_to_degrees(radians: f32) -> f32 {
     radians * 180.0 / std::f32::consts::PI
 }
 
-pub fn create_mesh(world: &mut World) {
+pub fn create_mesh(tex: Texture) -> Mesh {
     let mut verticies = vec![];
 
     for z in 0..32 {
@@ -56,4 +56,6 @@ pub fn create_mesh(world: &mut World) {
             verticies.extend(get_voxel_verticies(&IVec3::new(x, 0, z)));
         }
     }
+
+    Mesh::new(&verticies, Mat4::IDENTITY, tex)
 }

@@ -1,37 +1,47 @@
 use std::collections::HashSet;
 
-use glam::IVec3;
+use glam::{IVec3, Mat4};
 
-use crate::render::{get_voxel_verticies, mesh::Mesh, shader::ShaderProgram};
+use crate::render::{
+    get_voxel_verticies,
+    mesh::{self, Mesh},
+    texture::Texture,
+};
 
+#[derive(Default)]
 pub struct World {
-    pub voxel_positions: HashSet<IVec3>,
+    voxel_positions: HashSet<IVec3>,
     pub mesh: Option<Mesh>,
 }
 
 impl World {
-    pub fn new(vertex_shader: &str, fragment_shader: &str) -> Self {
-        Self {
-            voxel_positions: HashSet::new(),
-            mesh: None,
-            shader_program,
-        }
-    }
-
-    pub fn draw(&self) {
-        if let Some(mesh) = &self.mesh {
-            mesh.draw(&self.shader_program);
-        }
-    }
-
-    pub fn rebuild_mesh(&mut self) {
+    pub fn rebuild_mesh(&mut self, texture: Option<Texture>) {
         // TODO: presize this to correct size
         let mut verticies = vec![];
 
         for v in &self.voxel_positions {
-            verticies.extend(get_voxel_verticies(&v));
+            verticies.extend(get_voxel_verticies(v));
         }
 
-        self.mesh = Some(Mesh::new(&verticies));
+        let tex = if let Some(tex) = texture {
+            tex
+        } else if let Some(mesh) = self.mesh.take() {
+            mesh.texture
+        } else {
+            // TODO: better way to handle this?
+            Texture::new().unwrap()
+        };
+
+        self.mesh = Some(Mesh::new(&verticies, Mat4::IDENTITY, tex));
+    }
+
+    /// Returns true if a voxel was added, false if it was removed
+    pub fn set_voxel(&mut self, pos: IVec3) -> bool {
+        self.voxel_positions.insert(pos)
+    }
+
+    /// Returns whether the value existed and was removed
+    pub fn remove_voxel(&mut self, pos: &IVec3) -> bool {
+        self.voxel_positions.remove(pos)
     }
 }
