@@ -1,4 +1,4 @@
-use beryllium::{events::*, *};
+use beryllium::{*};
 
 use gl33::{global_loader::*, *};
 use glam::Vec3;
@@ -80,10 +80,10 @@ fn main() {
                 (events::Event::MouseButton { button, pressed, .. }, _) => {
                     if pressed && button == 1 {
                         let pos = camera.position.as_ivec3();
-                        if !world.set_voxel(pos) {
-                            // was not added and therefore already existed, so remove it
-                            world.remove_voxel(&pos);
-                        }
+                        match world.get_voxel(&pos).is_some() {
+                            true => world.remove_voxel(&pos),
+                            false => world.set_voxel(pos),
+                        };
                         world.rebuild_mesh(Some(tex));
                     }
                 }

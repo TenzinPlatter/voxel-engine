@@ -1,16 +1,15 @@
-use std::collections::HashSet;
+use std::collections::HashMap;
 
 use glam::{IVec3, Mat4};
 
-use crate::render::{
-    get_voxel_verticies,
-    mesh::{self, Mesh},
-    texture::Texture,
+use crate::{
+    engine::voxel::Voxel,
+    render::{mesh::Mesh, texture::Texture},
 };
 
 #[derive(Default)]
 pub struct World {
-    voxel_positions: HashSet<IVec3>,
+    voxel_positions: HashMap<IVec3, Voxel>,
     pub mesh: Option<Mesh>,
 }
 
@@ -19,8 +18,8 @@ impl World {
         // TODO: presize this to correct size
         let mut verticies = vec![];
 
-        for v in &self.voxel_positions {
-            verticies.extend(get_voxel_verticies(v));
+        for vox in self.voxel_positions.values() {
+            verticies.extend(vox.get_verticies());
         }
 
         let tex = if let Some(tex) = texture {
@@ -35,13 +34,18 @@ impl World {
         self.mesh = Some(Mesh::new(&verticies, Mat4::IDENTITY, tex));
     }
 
-    /// Returns true if a voxel was added, false if it was removed
-    pub fn set_voxel(&mut self, pos: IVec3) -> bool {
-        self.voxel_positions.insert(pos)
+    /// get the voxel at position `pos`. If it exists return Some(&Voxel), else None
+    pub fn get_voxel(&self, pos: &IVec3) -> Option<&Voxel> {
+        self.voxel_positions.get(pos)
     }
 
-    /// Returns whether the value existed and was removed
-    pub fn remove_voxel(&mut self, pos: &IVec3) -> bool {
+    /// Returns None if a voxel was added, Some(Voxel) if the value already existed
+    pub fn set_voxel(&mut self, pos: IVec3) -> Option<Voxel> {
+        self.voxel_positions.insert(pos, Voxel::new(pos))
+    }
+
+    /// Returns the value that was removed if it existed in the map, else None
+    pub fn remove_voxel(&mut self, pos: &IVec3) -> Option<Voxel> {
         self.voxel_positions.remove(pos)
     }
 }
