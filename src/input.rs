@@ -21,7 +21,7 @@ impl InputState {
             SDLK_a => self.left = pressed,
             SDLK_d => self.right = pressed,
             SDLK_SPACE => self.up = pressed,
-            SDLK_c => self.down = pressed,
+            SDLK_c | SDLK_LCTRL => self.down = pressed,
             _ => {},
         }
     }
