@@ -2,6 +2,7 @@ pub mod engine;
 pub mod input;
 pub mod render;
 pub mod physics;
+pub mod player;
 
 use beryllium::{video::GlWindow, *};
 use glam::IVec3;

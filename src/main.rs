@@ -1,10 +1,11 @@
-use beryllium::{*};
+use beryllium::*;
 
 use gl33::{global_loader::*, *};
 use glam::Vec3;
 use voxel_engine::{
     create_mesh,
     engine::world::World,
+    player::Player,
     render::{
         PolygonMode,
         camera::Camera,
@@ -43,6 +44,8 @@ fn main() {
     tex.bind();
     Texture::set_image("assets/wood_container.jpg");
 
+    let mut player = Player::new(Vec3::new(-3.0, 10.0, -3.0));
+
     create_mesh(&mut world, tex);
 
     clear_color(0.2, 0.3, 0.3, 1.0);
@@ -51,9 +54,6 @@ fn main() {
     unsafe {
         glEnable(GL_DEPTH_TEST);
     }
-
-    // Create camera looking at the scene
-    let mut camera = Camera::looking_at(Vec3::new(-3.0, 10.0, -3.0), Vec3::ZERO);
 
     // Delta time tracking
     let mut last_frame_time = sdl.get_ticks();
@@ -72,14 +72,14 @@ fn main() {
             match event {
                 (events::Event::Quit, _) => break 'main_loop,
                 (events::Event::Key { keycode, pressed, .. }, _) => {
-                    camera.input_state.set_key(keycode, pressed);
+                    player.camera.input_state.set_key(keycode, pressed);
                 }
                 (events::Event::MouseMotion { x_delta, y_delta, .. }, _) => {
-                    camera.process_mouse(x_delta as f32, -y_delta as f32);
+                    player.camera.process_mouse(x_delta as f32, -y_delta as f32);
                 }
                 (events::Event::MouseButton { button, pressed, .. }, _) => {
                     if pressed && button == 1 {
-                        let pos = camera.position.as_ivec3();
+                        let pos = player.camera.position.as_ivec3();
                         match world.get_voxel(&pos).is_some() {
                             true => world.remove_voxel(&pos),
                             false => world.set_voxel(pos),
@@ -91,11 +91,11 @@ fn main() {
             }
         }
 
-        camera.handle_move(delta_time);
+        player.camera.handle_move(delta_time);
 
         renderer.render_mesh(
             world.mesh.as_ref().expect("Mesh shouldve been build on world init"),
-            &camera,
+            &player.camera,
             &viewport,
         );
 
