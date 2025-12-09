@@ -8,7 +8,6 @@ use voxel_engine::{
     player::Player,
     render::{
         PolygonMode,
-        camera::Camera,
         clear_color, polygon_mode,
         renderer::{Renderer, Viewport},
         texture::Texture,
@@ -25,6 +24,7 @@ fn main() {
     unsafe { load_global_gl(&|p_name| win.get_proc_address(p_name)) };
 
     sdl.set_relative_mouse_mode(true).unwrap();
+    win.set_swap_interval(video::GlSwapInterval::Vsync).unwrap();
 
     // Get actual drawable size (may differ from window size)
     let (drawable_width, drawable_height) = win.get_drawable_size();
@@ -72,10 +72,10 @@ fn main() {
             match event {
                 (events::Event::Quit, _) => break 'main_loop,
                 (events::Event::Key { keycode, pressed, .. }, _) => {
-                    player.camera.input_state.set_key(keycode, pressed);
+                    player.input_state.set_key(keycode, pressed);
                 }
                 (events::Event::MouseMotion { x_delta, y_delta, .. }, _) => {
-                    player.camera.process_mouse(x_delta as f32, -y_delta as f32);
+                    player.process_mouse(x_delta as f32, -y_delta as f32);
                 }
                 (events::Event::MouseButton { button, pressed, .. }, _) => {
                     if pressed && button == 1 {
@@ -84,6 +84,7 @@ fn main() {
                             true => world.remove_voxel(&pos),
                             false => world.set_voxel(pos),
                         };
+
                         world.rebuild_mesh(Some(tex));
                     }
                 }
@@ -91,7 +92,7 @@ fn main() {
             }
         }
 
-        player.camera.handle_move(delta_time);
+        player.step(delta_time);
 
         renderer.render_mesh(
             world.mesh.as_ref().expect("Mesh shouldve been build on world init"),

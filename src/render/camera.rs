@@ -19,9 +19,6 @@ pub struct Camera {
 
     // Camera settings
     pub movement_speed: f32,
-    pub mouse_sensitivity: f32,
-
-    pub input_state: InputState,
 }
 
 impl Camera {
@@ -35,8 +32,6 @@ impl Camera {
             right: Vec3::X,
             up: Vec3::Y,
             movement_speed: 20.0,
-            mouse_sensitivity: 0.1,
-            input_state: InputState::default(),
         };
         camera.update_vectors();
         camera
@@ -58,8 +53,6 @@ impl Camera {
             right: Vec3::X,
             up: Vec3::Y,
             movement_speed: 20.0,
-            mouse_sensitivity: 0.1,
-            input_state: InputState::default()
         };
         camera.update_vectors();
         camera
@@ -70,55 +63,8 @@ impl Camera {
         Mat4::look_to_rh(self.position, self.front, self.up)
     }
 
-    /// Move camera forward (in the direction it's looking, ignoring Y)
-    fn move_forward(&mut self, delta_time: f32) {
-        let forward = Vec3::new(self.front.x, 0.0, self.front.z).normalize();
-        self.position += forward * self.movement_speed * delta_time;
-    }
-
-    /// Move camera back
-    fn move_back(&mut self, delta_time: f32) {
-        let forward = Vec3::new(self.front.x, 0.0, self.front.z).normalize();
-        self.position -= forward * self.movement_speed * delta_time;
-    }
-
-    /// Move camera left (strafe)
-    fn move_left(&mut self, delta_time: f32) {
-        self.position -= self.right * self.movement_speed * delta_time;
-    }
-
-    /// Move camera right (strafe)
-    fn move_right(&mut self, delta_time: f32) {
-        self.position += self.right * self.movement_speed * delta_time;
-    }
-
-    /// Move camera up
-    fn move_up(&mut self, delta_time: f32) {
-        self.position += WORLD_UP * self.movement_speed * delta_time;
-    }
-
-    /// Move camera down
-    fn move_down(&mut self, delta_time: f32) {
-        self.position -= WORLD_UP * self.movement_speed * delta_time;
-    }
-
-    /// Process mouse movement to rotate the camera
-    pub fn process_mouse(&mut self, x_offset: f32, y_offset: f32) {
-        let x_offset = x_offset * self.mouse_sensitivity * 0.01;
-        let y_offset = y_offset * self.mouse_sensitivity * 0.01;
-
-        self.yaw += x_offset;
-        self.pitch += y_offset;
-
-        // Constrain pitch to prevent gimbal lock
-        const PITCH_LIMIT: f32 = std::f32::consts::FRAC_PI_2 - 0.01; // ~89 degrees
-        self.pitch = self.pitch.clamp(-PITCH_LIMIT, PITCH_LIMIT);
-
-        self.update_vectors();
-    }
-
     /// Recompute front, right, and up vectors from yaw and pitch
-    fn update_vectors(&mut self) {
+    pub fn update_vectors(&mut self) {
         // Calculate new front vector from yaw and pitch
         self.front = Vec3::new(
             self.yaw.cos() * self.pitch.cos(),
@@ -129,26 +75,5 @@ impl Camera {
         // Recalculate right and up vectors
         self.right = self.front.cross(WORLD_UP).normalize();
         self.up = self.right.cross(self.front).normalize();
-    }
-
-    pub fn handle_move(&mut self, delta_time: f32) {
-        if self.input_state.forward {
-            self.move_forward(delta_time);
-        }
-        if self.input_state.back {
-            self.move_back(delta_time);
-        }
-        if self.input_state.left {
-            self.move_left(delta_time);
-        }
-        if self.input_state.right {
-            self.move_right(delta_time);
-        }
-        if self.input_state.up {
-            self.move_up(delta_time);
-        }
-        if self.input_state.down {
-            self.move_down(delta_time);
-        }
     }
 }

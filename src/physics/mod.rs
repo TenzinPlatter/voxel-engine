@@ -1,5 +1,7 @@
 use glam::Vec3;
 
+pub const PHYSICS_DT: f32 = 1. / 120.;
+
 pub trait PhysicsBody {
     /// return the current position of the body
     fn position(&self) -> Vec3;
