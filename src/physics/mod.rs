@@ -2,6 +2,7 @@ use glam::Vec3;
 
 pub const PHYSICS_DT: f32 = 1. / 120.;
 
+#[derive(Clone)]
 pub struct PhysicsBody {
     pub position: Vec3,
     pub size: Vec3,

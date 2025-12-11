@@ -1,3 +1,5 @@
+use std::env::current_dir;
+
 use glam::Vec3;
 
 use crate::{
@@ -11,7 +13,7 @@ const DEFAULT_MOUSE_SENS: f32 = 0.2;
 const DEFAULT_PLAYER_SPEED: f32 = 20.0;
 
 pub struct PlayerState {
-    body: Option<Player>,
+    body: PhysicsBody,
 }
 
 pub struct Player {
@@ -22,6 +24,12 @@ pub struct Player {
     move_speed: f32,
 
     pub camera: Camera,
+}
+
+impl PlayerState {
+    pub fn new(body: PhysicsBody) -> Self {
+        Self { body }
+    }
 }
 
 impl Player {
@@ -46,15 +54,19 @@ impl Player {
         }
 
         // TODO: interpolate for smoother graphics
-        // if acc >= 0. {
-        //     self.lerp()
-        // }
+        self.camera.position = if self.body.accumulator >= 0.
+            && let Some(last) = &game_state.last_player
+            && let Some(curr) = &game_state.current_player
+        {
+            (curr.body.position - last.body.position) * self.body.accumulator / PHYSICS_DT
+        } else {
+            self.body.position
+        };
 
-        self.camera.position = self.body.position;
+        game_state.last_player = game_state.current_player.take();
+        game_state.current_player = Some(PlayerState::new(self.body.clone()));
         self.camera.update_vectors();
     }
-
-    pub fn lerp(&mut self, last_state: &PlayerState, current_state: &PlayerState) {}
 
     /// Process mouse movement to rotate the camera
     pub fn process_mouse(&mut self, x_offset: f32, y_offset: f32) {

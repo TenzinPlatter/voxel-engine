@@ -20,7 +20,7 @@ const WINDOW_TITLE: &str = "(float)";
 #[derive(Default)]
 pub struct GameState {
     pub last_player: Option<PlayerState>,
-    pub current: Option<PlayerState>,
+    pub current_player: Option<PlayerState>,
 }
 
 pub fn init_sdl_and_win() -> (Sdl, GlWindow) {
