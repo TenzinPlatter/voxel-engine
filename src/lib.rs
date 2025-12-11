@@ -8,15 +8,20 @@ use beryllium::{video::GlWindow, *};
 use glam::IVec3;
 
 use crate::{
-    engine::world::World,
-    render::texture::Texture,
+    engine::world::World, player::PlayerState, render::texture::Texture
 };
 
-const WIDTH: i32 = 800;
-const HEIGHT: i32 = 600;
+const WIDTH: i32 = 1600;
+const HEIGHT: i32 = 900;
 
 // make window float with my niri setup
 const WINDOW_TITLE: &str = "(float)";
+
+#[derive(Default)]
+pub struct GameState {
+    pub last_player: Option<PlayerState>,
+    pub current: Option<PlayerState>,
+}
 
 pub fn init_sdl_and_win() -> (Sdl, GlWindow) {
     let sdl = Sdl::init(init::InitFlags::EVERYTHING);
@@ -32,7 +37,7 @@ pub fn init_sdl_and_win() -> (Sdl, GlWindow) {
         title: WINDOW_TITLE,
         width: WIDTH,
         height: HEIGHT,
-        allow_high_dpi: true,
+        allow_high_dpi: false,
         borderless: false,
         resizable: false,
     };

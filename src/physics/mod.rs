@@ -2,29 +2,30 @@ use glam::Vec3;
 
 pub const PHYSICS_DT: f32 = 1. / 120.;
 
-pub trait PhysicsBody {
-    /// return the current position of the body
-    fn position(&self) -> Vec3;
+pub struct PhysicsBody {
+    pub position: Vec3,
+    pub size: Vec3,
+    pub accumulator: f32,
+}
 
-    /// size of the body's (assumed to be a rectangular prism) sides across each axis (x, y, z)
-    fn size(&self) -> Vec3;
-
-    /// move the body by the delta provided
-    fn translate(&mut self, delta: Vec3);
+impl PhysicsBody {
+    pub fn new(position: Vec3, size: Vec3) -> Self {
+        Self {
+            position,
+            size,
+            accumulator: 0.,
+        }
+    }
 }
 
 /// Check whether two physics bodies are colliding using AABB collision detection
-pub fn colliding_with<A: PhysicsBody, B: PhysicsBody>(a: &A, b: &B) -> bool {
-    let a_pos = a.position();
-    let a_size = a.size();
-    let b_pos = b.position();
-    let b_size = b.size();
-
-    // AABB collision detection (symmetric check)
-    a_pos.x < b_pos.x + b_size.x
-        && a_pos.x + a_size.x > b_pos.x
-        && a_pos.y < b_pos.y + b_size.y
-        && a_pos.y + a_size.y > b_pos.y
-        && a_pos.z < b_pos.z + b_size.z
-        && a_pos.z + a_size.z > b_pos.z
+/// TODO: when using this do a binary search from start time to end time to see how far the object
+/// can be moved before colliding, ~5 steps is probably good
+pub fn colliding_with(a: &PhysicsBody, b: &PhysicsBody) -> bool {
+    a.position.x < b.position.x + b.size.x
+        && a.position.x + a.size.x > b.position.x
+        && a.position.y < b.position.y + b.size.y
+        && a.position.y + a.size.y > b.position.y
+        && a.position.z < b.position.z + b.size.z
+        && a.position.z + a.size.z > b.position.z
 }

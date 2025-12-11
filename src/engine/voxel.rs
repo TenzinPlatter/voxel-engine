@@ -1,20 +1,15 @@
 use glam::{IVec3, Vec2, Vec3};
 
-use crate::{
-    physics::PhysicsBody,
-    render::vertex::VertexTex,
-};
+use crate::{physics::PhysicsBody, render::vertex::VertexTex};
 
 pub struct Voxel {
-    position: Vec3,
-    velocity: Vec3,
+    body: PhysicsBody,
 }
 
 impl Voxel {
     pub fn new(position: IVec3) -> Self {
         Voxel {
-            position: position.as_vec3(),
-            velocity: Vec3::ZERO,
+            body: PhysicsBody::new(position.as_vec3(), Vec3::ONE),
         }
     }
 
@@ -59,23 +54,9 @@ impl Voxel {
         ];
 
         for v in vertices.iter_mut() {
-            v.position += self.position;
+            v.position += self.body.position;
         }
 
         vertices
-    }
-}
-
-impl PhysicsBody for Voxel {
-    fn position(&self) -> Vec3 {
-        self.position
-    }
-
-    fn translate(&mut self, delta: Vec3) {
-        self.position += delta;
-    }
-
-    fn size(&self) -> Vec3 {
-        Vec3::ONE
     }
 }

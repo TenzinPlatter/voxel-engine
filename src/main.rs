@@ -3,15 +3,9 @@ use beryllium::*;
 use gl33::{global_loader::*, *};
 use glam::Vec3;
 use voxel_engine::{
-    create_mesh,
-    engine::world::World,
-    player::Player,
-    render::{
-        PolygonMode,
-        clear_color, polygon_mode,
-        renderer::{Renderer, Viewport},
-        texture::Texture,
-    },
+    create_mesh, engine::world::World, input::InputState, player::Player, render::{
+        clear_color, polygon_mode, renderer::{Renderer, Viewport}, texture::Texture, PolygonMode
+    }, GameState
 };
 
 const VERT_SHADER: &str = include_str!("../shaders/vertex.glsl");
@@ -24,7 +18,7 @@ fn main() {
     unsafe { load_global_gl(&|p_name| win.get_proc_address(p_name)) };
 
     sdl.set_relative_mouse_mode(true).unwrap();
-    win.set_swap_interval(video::GlSwapInterval::Vsync).unwrap();
+    // win.set_swap_interval(video::GlSwapInterval::Vsync).unwrap();
 
     // Get actual drawable size (may differ from window size)
     let (drawable_width, drawable_height) = win.get_drawable_size();
@@ -38,6 +32,7 @@ fn main() {
         glViewport(0, 0, drawable_width, drawable_height);
     }
 
+    let mut game_state = GameState::default();
     let mut world = World::default();
     let renderer = Renderer::new(VERT_SHADER, FRAG_SHADER);
     let tex = Texture::new().expect("Failed to create texture");
@@ -57,6 +52,7 @@ fn main() {
 
     // Delta time tracking
     let mut last_frame_time = sdl.get_ticks();
+    let mut input_state = InputState::default();
 
     'main_loop: loop {
         // Calculate delta time
@@ -68,11 +64,12 @@ fn main() {
             glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         }
 
+
         while let Some(event) = sdl.poll_events() {
             match event {
                 (events::Event::Quit, _) => break 'main_loop,
                 (events::Event::Key { keycode, pressed, .. }, _) => {
-                    player.input_state.set_key(keycode, pressed);
+                    input_state.set_key(keycode, pressed);
                 }
                 (events::Event::MouseMotion { x_delta, y_delta, .. }, _) => {
                     player.process_mouse(x_delta as f32, -y_delta as f32);
@@ -92,7 +89,7 @@ fn main() {
             }
         }
 
-        player.step(delta_time);
+        player.step(delta_time, &input_state, &mut game_state);
 
         renderer.render_mesh(
             world.mesh.as_ref().expect("Mesh shouldve been build on world init"),

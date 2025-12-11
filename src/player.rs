@@ -1,6 +1,7 @@
-use glam::{Mat4, Vec3};
+use glam::Vec3;
 
 use crate::{
+    GameState,
     input::InputState,
     physics::{PHYSICS_DT, PhysicsBody},
     render::camera::Camera,
@@ -9,42 +10,51 @@ use crate::{
 const DEFAULT_MOUSE_SENS: f32 = 0.2;
 const DEFAULT_PLAYER_SPEED: f32 = 20.0;
 
+pub struct PlayerState {
+    body: Option<Player>,
+}
+
 pub struct Player {
-    position: Vec3,
-    velocity: Vec3,
+    body: PhysicsBody,
 
     mouse_sensitivity: f32,
     /// multiplier for a normalized velocity vector, player speed
     move_speed: f32,
 
-    pub input_state: InputState,
     pub camera: Camera,
 }
 
 impl Player {
     pub fn new(position: Vec3) -> Self {
         Self {
-            position,
-            velocity: Vec3::ZERO,
+            body: PhysicsBody::new(position, Vec3::ZERO),
             camera: Camera::looking_at(position, Vec3::ZERO),
-            input_state: InputState::default(),
             mouse_sensitivity: DEFAULT_MOUSE_SENS,
             move_speed: DEFAULT_PLAYER_SPEED,
         }
     }
 
-    pub fn step(&mut self, frame_delta: f32) {
-        self.velocity = self.camera.view_matrix().transform_vector3(self.input_state.as_vel()) * self.move_speed;
+    pub fn step(&mut self, frame_delta: f32, input_state: &InputState, game_state: &mut GameState) {
+        let input_vel = input_state.as_vel();
+        let vel = ((self.camera.front * input_vel.x) + (self.camera.right * input_vel.z) + (self.camera.up * input_vel.y))
+            * self.move_speed;
 
-        let mut acc = frame_delta;
-        while acc > PHYSICS_DT {
-            self.position += self.velocity * PHYSICS_DT;
-            acc -= PHYSICS_DT;
+        self.body.accumulator += frame_delta;
+        while self.body.accumulator > PHYSICS_DT {
+            self.body.position += vel * PHYSICS_DT;
+            self.body.accumulator -= PHYSICS_DT;
         }
 
-        self.camera.position = self.position;
+        // TODO: interpolate for smoother graphics
+        // if acc >= 0. {
+        //     self.lerp()
+        // }
+
+        self.camera.position = self.body.position;
         self.camera.update_vectors();
     }
+
+    pub fn lerp(&mut self, last_state: &PlayerState, current_state: &PlayerState) {}
 
     /// Process mouse movement to rotate the camera
     pub fn process_mouse(&mut self, x_offset: f32, y_offset: f32) {
@@ -59,19 +69,5 @@ impl Player {
         self.camera.pitch = self.camera.pitch.clamp(-PITCH_LIMIT, PITCH_LIMIT);
 
         self.camera.update_vectors();
-    }
-}
-
-impl PhysicsBody for Player {
-    fn position(&self) -> Vec3 {
-        self.position
-    }
-
-    fn size(&self) -> Vec3 {
-        Vec3::new(1., 2., 1.)
-    }
-
-    fn translate(&mut self, delta: Vec3) {
-        self.position += delta;
     }
 }
