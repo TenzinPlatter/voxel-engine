@@ -2,9 +2,10 @@ use glam::Vec3;
 
 pub const PHYSICS_DT: f32 = 1. / 120.;
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct PhysicsBody {
     pub position: Vec3,
+    pub velocity: Vec3,
     pub size: Vec3,
     pub accumulator: f32,
 }
@@ -13,6 +14,7 @@ impl PhysicsBody {
     pub fn new(position: Vec3, size: Vec3) -> Self {
         Self {
             position,
+            velocity: Vec3::ZERO,
             size,
             accumulator: 0.,
         }

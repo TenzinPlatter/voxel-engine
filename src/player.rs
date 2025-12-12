@@ -12,6 +12,7 @@ use crate::{
 const DEFAULT_MOUSE_SENS: f32 = 0.2;
 const DEFAULT_PLAYER_SPEED: f32 = 20.0;
 
+#[derive(Debug)]
 pub struct PlayerState {
     body: PhysicsBody,
 }
@@ -44,21 +45,26 @@ impl Player {
 
     pub fn step(&mut self, frame_delta: f32, input_state: &InputState, game_state: &mut GameState) {
         let input_vel = input_state.as_vel();
-        let vel = ((self.camera.front * input_vel.x) + (self.camera.right * input_vel.z) + (self.camera.up * input_vel.y))
-            * self.move_speed;
+        let input_vel_transformed =
+            (self.camera.front * input_vel.x) + (self.camera.right * input_vel.z) + (self.camera.up * input_vel.y);
+
+        let gravity = Vec3::ZERO.with_y(self.body.velocity.y - (9.8 * frame_delta));
+
+        self.body.velocity = (input_vel_transformed * self.move_speed) + gravity;
 
         self.body.accumulator += frame_delta;
         while self.body.accumulator > PHYSICS_DT {
-            self.body.position += vel * PHYSICS_DT;
+            self.body.position += self.body.velocity * PHYSICS_DT;
             self.body.accumulator -= PHYSICS_DT;
         }
 
-        // TODO: interpolate for smoother graphics
         self.camera.position = if self.body.accumulator >= 0.
             && let Some(last) = &game_state.last_player
             && let Some(curr) = &game_state.current_player
         {
-            (curr.body.position - last.body.position) * self.body.accumulator / PHYSICS_DT
+            let last = last.body.position;
+            let curr = curr.body.position;
+            last + (curr - last) * self.body.accumulator / PHYSICS_DT
         } else {
             self.body.position
         };
