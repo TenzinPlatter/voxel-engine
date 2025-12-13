@@ -7,12 +7,14 @@ pub struct Voxel {
 }
 
 impl Voxel {
+    /// Creates a new voxel at the given integer position.
     pub fn new(position: IVec3) -> Self {
         Voxel {
             body: PhysicsBody::new(position.as_vec3(), Vec3::ONE),
         }
     }
 
+    /// Returns the 36 vertices that make up this voxel's cube geometry.
     pub fn get_verticies(&self) -> [VertexTex; 36] {
         let mut vertices = [
             VertexTex::new(Vec3::new(-0.5, -0.5, -0.5), Vec2::new(0.0, 0.0)),

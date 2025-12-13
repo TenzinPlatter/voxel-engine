@@ -5,14 +5,14 @@ use gl33::{global_loader::*, *};
 pub struct VertexArray(pub u32);
 
 impl VertexArray {
-    /// Creates a new vertex array object
+    /// Creates a new vertex array object.
     pub fn new() -> Option<Self> {
         let mut vao = 0;
         unsafe { glGenVertexArrays(1, &mut vao) };
         if vao != 0 { Some(Self(vao)) } else { None }
     }
 
-    /// Bind this vertex array as the current vertex array object
+    /// Binds this vertex array as the current vertex array object.
     pub fn bind(&self) {
         glBindVertexArray(self.0);
     }
@@ -33,7 +33,7 @@ pub enum BufferType {
 pub struct Buffer(pub u32);
 
 impl Buffer {
-    /// Makes a new vertex buffer
+    /// Creates a new vertex buffer.
     pub fn new() -> Option<Self> {
         let mut vbo = 0;
         unsafe {
@@ -42,7 +42,7 @@ impl Buffer {
         if vbo != 0 { Some(Self(vbo)) } else { None }
     }
 
-    /// Bind this vertex buffer for the given type
+    /// Binds this vertex buffer for the given type.
     pub fn bind(&self, ty: BufferType) {
         unsafe { glBindBuffer(GLenum(ty as u32), self.0) }
     }

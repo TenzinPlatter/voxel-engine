@@ -23,6 +23,7 @@ pub struct GameState {
     pub current_player: Option<PlayerState>,
 }
 
+/// Initializes SDL and creates an OpenGL window with default settings.
 pub fn init_sdl_and_win() -> (Sdl, GlWindow) {
     let sdl = Sdl::init(init::InitFlags::EVERYTHING);
 
@@ -48,17 +49,20 @@ pub fn init_sdl_and_win() -> (Sdl, GlWindow) {
     (sdl, win)
 }
 
+/// Converts degrees to radians.
 pub fn degrees_to_radians(degrees: f32) -> f32 {
     degrees * std::f32::consts::PI / 180.0
 }
 
+/// Converts radians to degrees.
 pub fn radians_to_degrees(radians: f32) -> f32 {
     radians * 180.0 / std::f32::consts::PI
 }
 
+/// Creates a flat ground mesh in the world from -32 to 32 on x and z axes.
 pub fn create_mesh(world: &mut World, tex: Texture) {
-    for z in 0..32 {
-        for x in 0..32 {
+    for z in -32..32 {
+        for x in -32..32 {
             world.set_voxel(IVec3::new(x, 0, z));
         }
     }

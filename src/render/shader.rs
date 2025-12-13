@@ -3,6 +3,7 @@ use gl33::{global_loader::*, *};
 use glam::{Mat4, Vec3};
 
 pub trait ShaderUniformType {
+    /// Sets a uniform value in the given shader program.
     fn set_uniform(shader_prog: &ShaderProgram, name: &str, val: Self);
 }
 

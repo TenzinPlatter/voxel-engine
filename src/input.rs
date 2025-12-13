@@ -28,6 +28,7 @@ pub struct InputState {
 }
 
 impl KeyState {
+    /// Creates a key state by comparing previous and current press states.
     fn from_pressed_last_and_curr(last_pressed: bool, curr_pressed: bool) -> Self {
         Self {
             is_pressed: curr_pressed,
@@ -38,6 +39,7 @@ impl KeyState {
 }
 
 impl InputState {
+    /// Converts the current input state to a normalized velocity vector.
     pub fn as_vel(&self) -> Vec3 {
         let mut accel = Vec3::ZERO;
 
@@ -69,7 +71,7 @@ impl InputState {
         accel
     }
 
-    /// Update the state when a key is pressed or released
+    /// Updates the state when a key is pressed or released.
     pub fn set_key(&mut self, keycode: SDL_Keycode, pressed: bool) {
         #[allow(non_upper_case_globals)]
         match keycode {

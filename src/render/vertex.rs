@@ -3,11 +3,16 @@ use gl33::{global_loader::*, *};
 use glam::{Vec2, Vec3};
 
 pub trait Vertex {
+    /// Configures OpenGL vertex attributes for this vertex type.
     fn configure_attributes();
 
+    /// Returns a reference to the vertex position.
     fn position(&self) -> &Vec3;
+
+    /// Returns a mutable reference to the vertex position.
     fn position_mut(&mut self) -> &mut Vec3;
 
+    /// Translates the vertex by the given offset.
     fn translate(&mut self, offset: Vec3) {
         *self.position_mut() += offset;
     }
@@ -61,9 +66,12 @@ impl Vertex for VertexTex {
 }
 
 impl VertexTex {
+    /// Creates a new textured vertex at the given position with texture coordinates.
     pub fn new(point: Vec3, tex: Vec2) -> Self {
         Self { position: point, tex }
     }
+
+    /// Sets the texture coordinates for this vertex.
     pub fn set_tex(&mut self, tex: Vec2) {
         self.tex = tex;
     }
@@ -95,10 +103,12 @@ impl Vertex for VertexColor {
 }
 
 impl VertexColor {
+    /// Creates a new colored vertex at the given position with color.
     pub fn new(point: Vec3, color: Vec3) -> Self {
         Self { position: point, color }
     }
 
+    /// Sets the color for this vertex.
     pub fn set_color(&mut self, color: Vec3) {
         self.color = color;
     }

@@ -15,6 +15,7 @@ pub struct Mesh {
 }
 
 impl Mesh {
+    /// Creates a new mesh from vertices, transform, and texture.
     pub fn new(verticies: &[VertexTex], transform: Mat4, texture: Texture) -> Self {
         let vao = VertexArray::new().expect("Failed to create VAO");
         vao.bind();
@@ -33,6 +34,7 @@ impl Mesh {
         }
     }
 
+    /// Draws the mesh using the given shader program.
     pub fn draw(&self, shader_program: &ShaderProgram) {
         glBindVertexArray(self.vao.0);
         Mat4::set_uniform(shader_program, "model", self.transform);

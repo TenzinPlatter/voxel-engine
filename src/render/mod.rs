@@ -32,14 +32,14 @@ pub fn polygon_mode(mode: PolygonMode) {
     unsafe { glPolygonMode(GL_FRONT_AND_BACK, GLenum(mode as u32)) };
 }
 
+/// Sets the clear color for the framebuffer.
 pub fn clear_color(r: f32, g: f32, b: f32, a: f32) {
     unsafe {
         glClearColor(r, g, b, a);
     }
 }
 
-/// A simple function to render a unit cube at a given position.
-/// @param pos The top left of the cube to render.
+/// Renders a unit cube at the given position with optional rotation.
 pub fn draw_voxel_at(shader_program: &ShaderProgram, pos: &IVec3, rotation_mat: Option<Mat4>) {
     let vertices = [
         VertexTex::new(Vec3::new(-0.5, -0.5, -0.5), Vec2::new(0.0, 0.0)),

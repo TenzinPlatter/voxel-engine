@@ -13,6 +13,7 @@ pub struct PhysicsBody {
 }
 
 impl PhysicsBody {
+    /// Creates a new physics body at the given position and size.
     pub fn new(position: Vec3, size: Vec3) -> Self {
         Self {
             position,
@@ -24,7 +25,7 @@ impl PhysicsBody {
     }
 }
 
-/// Check whether two physics bodies are colliding using AABB collision detection
+/// Checks whether two physics bodies are colliding using AABB collision detection.
 /// TODO: when using this do a binary search from start time to end time to see how far the object
 /// can be moved before colliding, ~5 steps is probably good
 pub fn colliding_with_aabb(a: &PhysicsBody, b: &PhysicsBody) -> bool {

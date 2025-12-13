@@ -15,6 +15,7 @@ pub struct World {
 }
 
 impl World {
+    /// Rebuilds the world's mesh from all voxels, optionally using a new texture.
     pub fn rebuild_mesh(&mut self, texture: Option<Texture>) {
         // TODO: presize this to correct size
         let mut verticies = vec![];
@@ -35,22 +36,25 @@ impl World {
         self.mesh = Some(Mesh::new(&verticies, Mat4::IDENTITY, tex));
     }
 
-    /// get the voxel at position `pos`. If it exists return Some(&Voxel), else None
+    /// Gets the voxel at the given position, returning None if it doesn't exist.
     pub fn get_voxel(&self, pos: &IVec3) -> Option<&Voxel> {
         self.voxels.get(pos)
     }
 
-    /// Returns None if a voxel was added, Some(Voxel) if the value already existed
+    /// Adds a voxel at the given position, returning the old value if one existed.
     pub fn set_voxel(&mut self, pos: IVec3) -> Option<Voxel> {
         self.voxels.insert(pos, Voxel::new(pos))
     }
 
-    /// Returns the value that was removed if it existed in the map, else None
+    /// Removes the voxel at the given position, returning it if it existed.
     pub fn remove_voxel(&mut self, pos: &IVec3) -> Option<Voxel> {
         self.voxels.remove(pos)
     }
 
+    /// Checks if the given physics body is colliding with any voxel in the world.
     pub fn is_colliding(&self, other: &PhysicsBody) -> bool {
+        // TODO: extrusion or something so we cant phase through floor
+        // TODO: optimize to not check every square
         self.voxels.values().any(|v| colliding_with_aabb(&v.body, other))
     }
 }

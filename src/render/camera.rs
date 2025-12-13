@@ -22,7 +22,7 @@ pub struct Camera {
 }
 
 impl Camera {
-    /// Creates a new camera at the given position looking in the -Z direction
+    /// Creates a new camera at the given position looking in the -Z direction.
     pub fn new(position: Vec3) -> Self {
         let mut camera = Self {
             position,
@@ -37,7 +37,7 @@ impl Camera {
         camera
     }
 
-    /// Creates a camera looking at a specific point
+    /// Creates a camera looking at a specific point.
     pub fn looking_at(position: Vec3, target: Vec3) -> Self {
         let direction = (target - position).normalize();
 
@@ -58,12 +58,12 @@ impl Camera {
         camera
     }
 
-    /// Returns the view matrix for this camera
+    /// Returns the view matrix for this camera.
     pub fn view_matrix(&self) -> Mat4 {
         Mat4::look_to_rh(self.position, self.front, self.up)
     }
 
-    /// Recompute front, right, and up vectors from yaw and pitch
+    /// Recomputes front, right, and up vectors from yaw and pitch.
     pub fn update_vectors(&mut self) {
         // Calculate new front vector from yaw and pitch
         self.front = Vec3::new(

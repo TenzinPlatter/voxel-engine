@@ -13,6 +13,7 @@ pub struct Viewport {
 }
 
 impl Renderer {
+    /// Creates a new renderer with the given vertex and fragment shaders.
     pub fn new(vertex_shader: &str, fragment_shader: &str) -> Self {
         let shader_program =
             ShaderProgram::from_vert_frag(vertex_shader, fragment_shader).expect("Failed to create shader program");
@@ -24,11 +25,12 @@ impl Renderer {
         res
     }
 
+    /// Binds the renderer's shader program for use.
     pub fn bind(&self) {
         self.shader_program.use_program();
     }
 
-    // NOTE: should Viewport be a type?
+    /// Renders a mesh with the given camera and viewport settings.
     pub fn render_mesh(&self, mesh: &Mesh, camera: &Camera, viewport: &Viewport) {
         let view = camera.view_matrix();
         let proj = Mat4::perspective_rh_gl(

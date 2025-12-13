@@ -6,6 +6,7 @@ pub struct Texture {
 }
 
 impl Texture {
+    /// Creates a new texture object.
     pub fn new() -> Option<Self> {
         let mut texture_id: u32 = 0;
         unsafe {
@@ -19,6 +20,7 @@ impl Texture {
         }
     }
 
+    /// Loads an image from the given path and sets it as the texture data.
     pub fn set_image(img_path: &str) {
         let img = image::open(img_path).expect("Failed to load texture image");
 
@@ -38,6 +40,7 @@ impl Texture {
         }
     }
 
+    /// Binds this texture as the active texture.
     pub fn bind(&self) {
         unsafe {
             glBindTexture(GL_TEXTURE_2D, self.id);
@@ -45,6 +48,7 @@ impl Texture {
     }
 }
 
+/// Configures default texture parameters (wrapping and filtering).
 pub fn setup_texture_opts() {
     unsafe {
         // set texture wrapping to mirrored repeat
