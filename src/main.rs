@@ -3,9 +3,15 @@ use beryllium::*;
 use gl33::{global_loader::*, *};
 use glam::Vec3;
 use voxel_engine::{
-    create_mesh, engine::world::World, input::InputState, player::Player, render::{
-        clear_color, polygon_mode, renderer::{Renderer, Viewport}, texture::Texture, PolygonMode
-    }, GameState
+    GameState, create_mesh,
+    engine::world::World,
+    input::InputState,
+    player::{Player, PlayerState},
+    render::{
+        PolygonMode, clear_color, polygon_mode,
+        renderer::{Renderer, Viewport},
+        texture::Texture,
+    },
 };
 
 const VERT_SHADER: &str = include_str!("../shaders/vertex.glsl");
@@ -64,7 +70,6 @@ fn main() {
             glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         }
 
-
         while let Some(event) = sdl.poll_events() {
             match event {
                 (events::Event::Quit, _) => break 'main_loop,
@@ -89,7 +94,12 @@ fn main() {
             }
         }
 
-        player.step(delta_time, &input_state, &mut game_state);
+        game_state.last_player = Some(PlayerState::new(player.step(
+            &world,
+            delta_time,
+            &input_state,
+            game_state.last_player.as_ref(),
+        )));
 
         renderer.render_mesh(
             world.mesh.as_ref().expect("Mesh shouldve been build on world init"),

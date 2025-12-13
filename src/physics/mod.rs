@@ -8,6 +8,8 @@ pub struct PhysicsBody {
     pub velocity: Vec3,
     pub size: Vec3,
     pub accumulator: f32,
+    /// how many milliseconds we have been accelerating due to gravity
+    pub gravity_accumulator: f32,
 }
 
 impl PhysicsBody {
@@ -17,6 +19,7 @@ impl PhysicsBody {
             velocity: Vec3::ZERO,
             size,
             accumulator: 0.,
+            gravity_accumulator: 0.
         }
     }
 }
@@ -24,7 +27,7 @@ impl PhysicsBody {
 /// Check whether two physics bodies are colliding using AABB collision detection
 /// TODO: when using this do a binary search from start time to end time to see how far the object
 /// can be moved before colliding, ~5 steps is probably good
-pub fn colliding_with(a: &PhysicsBody, b: &PhysicsBody) -> bool {
+pub fn colliding_with_aabb(a: &PhysicsBody, b: &PhysicsBody) -> bool {
     a.position.x < b.position.x + b.size.x
         && a.position.x + a.size.x > b.position.x
         && a.position.y < b.position.y + b.size.y

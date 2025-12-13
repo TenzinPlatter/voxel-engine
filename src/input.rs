@@ -24,7 +24,7 @@ pub struct InputState {
     pub back: KeyState,
     pub left: KeyState,
     pub right: KeyState,
-    pub jump: KeyState,
+    pub up: KeyState,
 }
 
 impl KeyState {
@@ -57,7 +57,7 @@ impl InputState {
             accel.z += 1.;
         }
 
-        if self.jump.is_pressed {
+        if self.up.is_pressed {
             accel.y += 1.;
         }
 
@@ -77,7 +77,7 @@ impl InputState {
             SDLK_s => self.back = KeyState::from_pressed_last_and_curr(self.back.is_pressed, pressed),
             SDLK_a => self.left = KeyState::from_pressed_last_and_curr(self.left.is_pressed, pressed),
             SDLK_d => self.right = KeyState::from_pressed_last_and_curr(self.right.is_pressed, pressed),
-            SDLK_SPACE => self.jump = KeyState::from_pressed_last_and_curr(self.jump.is_pressed, pressed),
+            SDLK_SPACE => self.up = KeyState::from_pressed_last_and_curr(self.up.is_pressed, pressed),
             _ => {}
         }
     }

@@ -3,7 +3,7 @@ use glam::{IVec3, Vec2, Vec3};
 use crate::{physics::PhysicsBody, render::vertex::VertexTex};
 
 pub struct Voxel {
-    body: PhysicsBody,
+    pub body: PhysicsBody,
 }
 
 impl Voxel {

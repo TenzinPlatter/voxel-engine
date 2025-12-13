@@ -3,7 +3,7 @@ use std::env::current_dir;
 use glam::Vec3;
 
 use crate::{
-    GameState,
+    engine::world::World,
     input::InputState,
     physics::{PHYSICS_DT, PhysicsBody},
     render::camera::Camera,
@@ -43,12 +43,27 @@ impl Player {
         }
     }
 
-    pub fn step(&mut self, frame_delta: f32, input_state: &InputState, game_state: &mut GameState) {
+    /// step a players (self) physics
+    /// @param last_player_state
+    pub fn step(
+        &mut self,
+        world: &World,
+        frame_delta: f32,
+        input_state: &InputState,
+        last_player_state: Option<&PlayerState>,
+    ) -> PhysicsBody {
+        let is_colliding = world.is_colliding(&self.body);
+
         let input_vel = input_state.as_vel();
         let input_vel_transformed =
             (self.camera.front * input_vel.x) + (self.camera.right * input_vel.z) + (self.camera.up * input_vel.y);
 
-        let gravity = Vec3::ZERO.with_y(self.body.velocity.y - (9.8 * frame_delta));
+        self.body.gravity_accumulator = if input_state.up.just_pressed || is_colliding {
+            0.
+        } else {
+            self.body.gravity_accumulator + frame_delta
+        };
+        let gravity = Vec3::ZERO.with_y(-9.8 * (self.body.gravity_accumulator));
 
         self.body.velocity = (input_vel_transformed * self.move_speed) + gravity;
 
@@ -59,19 +74,17 @@ impl Player {
         }
 
         self.camera.position = if self.body.accumulator >= 0.
-            && let Some(last) = &game_state.last_player
-            && let Some(curr) = &game_state.current_player
+            && let Some(last) = last_player_state
         {
             let last = last.body.position;
-            let curr = curr.body.position;
+            let curr = self.body.position;
             last + (curr - last) * self.body.accumulator / PHYSICS_DT
         } else {
             self.body.position
         };
 
-        game_state.last_player = game_state.current_player.take();
-        game_state.current_player = Some(PlayerState::new(self.body.clone()));
         self.camera.update_vectors();
+        self.body.clone()
     }
 
     /// Process mouse movement to rotate the camera
