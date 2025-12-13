@@ -1,5 +1,3 @@
-use std::env::current_dir;
-
 use glam::Vec3;
 
 use crate::{
@@ -28,12 +26,14 @@ pub struct Player {
 }
 
 impl PlayerState {
+    /// Creates a new player state snapshot from a physics body.
     pub fn new(body: PhysicsBody) -> Self {
         Self { body }
     }
 }
 
 impl Player {
+    /// Creates a new player at the given position with default settings.
     pub fn new(position: Vec3) -> Self {
         Self {
             body: PhysicsBody::new(position, Vec3::ZERO),
@@ -43,8 +43,7 @@ impl Player {
         }
     }
 
-    /// step a players (self) physics
-    /// @param last_player_state
+    /// Updates the player for one frame, handling input, physics, and camera interpolation.
     pub fn step(
         &mut self,
         world: &World,
@@ -52,20 +51,7 @@ impl Player {
         input_state: &InputState,
         last_player_state: Option<&PlayerState>,
     ) -> PhysicsBody {
-        let is_colliding = world.is_colliding(&self.body);
-
-        let input_vel = input_state.as_vel();
-        let input_vel_transformed =
-            (self.camera.front * input_vel.x) + (self.camera.right * input_vel.z) + (self.camera.up * input_vel.y);
-
-        self.body.gravity_accumulator = if input_state.up.just_pressed || is_colliding {
-            0.
-        } else {
-            self.body.gravity_accumulator + frame_delta
-        };
-        let gravity = Vec3::ZERO.with_y(-9.8 * (self.body.gravity_accumulator));
-
-        self.body.velocity = (input_vel_transformed * self.move_speed) + gravity;
+        self.body.velocity = self.get_velocity_vec(input_state, frame_delta, world.is_colliding(&self.body));
 
         self.body.accumulator += frame_delta;
         while self.body.accumulator > PHYSICS_DT {
@@ -73,21 +59,12 @@ impl Player {
             self.body.accumulator -= PHYSICS_DT;
         }
 
-        self.camera.position = if self.body.accumulator >= 0.
-            && let Some(last) = last_player_state
-        {
-            let last = last.body.position;
-            let curr = self.body.position;
-            last + (curr - last) * self.body.accumulator / PHYSICS_DT
-        } else {
-            self.body.position
-        };
-
+        self.camera.position = self.get_updated_camera_pos(last_player_state);
         self.camera.update_vectors();
         self.body.clone()
     }
 
-    /// Process mouse movement to rotate the camera
+    /// Processes mouse movement to rotate the camera.
     pub fn process_mouse(&mut self, x_offset: f32, y_offset: f32) {
         let x_offset = x_offset * self.mouse_sensitivity * 0.01;
         let y_offset = y_offset * self.mouse_sensitivity * 0.01;
@@ -100,5 +77,35 @@ impl Player {
         self.camera.pitch = self.camera.pitch.clamp(-PITCH_LIMIT, PITCH_LIMIT);
 
         self.camera.update_vectors();
+    }
+
+    /// Calculates the player's velocity vector from input and physics.
+    fn get_velocity_vec(&mut self, input_state: &InputState, frame_delta: f32, is_colliding: bool) -> Vec3 {
+        let input_vel = input_state.as_vel();
+        let input_vel_transformed =
+            (self.camera.front * input_vel.x) + (self.camera.right * input_vel.z);
+
+        self.body.gravity_accumulator = if input_state.up.just_pressed || is_colliding {
+            0.
+        } else {
+            self.body.gravity_accumulator + frame_delta
+        };
+
+        let gravity = Vec3::ZERO.with_y(-9.8 * (self.body.gravity_accumulator));
+
+        (input_vel_transformed.with_y(input_vel.y) * self.move_speed) + gravity
+    }
+
+    /// Returns the interpolated camera position for smooth rendering.
+    fn get_updated_camera_pos(&self, last_player_state: Option<&PlayerState>) -> Vec3 {
+        if self.body.accumulator >= 0.
+            && let Some(last) = last_player_state
+        {
+            let last = last.body.position;
+            let curr = self.body.position;
+            last + (curr - last) * self.body.accumulator / PHYSICS_DT
+        } else {
+            self.body.position
+        }
     }
 }
