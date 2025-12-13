@@ -24,7 +24,7 @@ fn main() {
     unsafe { load_global_gl(&|p_name| win.get_proc_address(p_name)) };
 
     sdl.set_relative_mouse_mode(true).unwrap();
-    // win.set_swap_interval(video::GlSwapInterval::Vsync).unwrap();
+    win.set_swap_interval(video::GlSwapInterval::Vsync).unwrap();
 
     // Get actual drawable size (may differ from window size)
     let (drawable_width, drawable_height) = win.get_drawable_size();
@@ -45,7 +45,7 @@ fn main() {
     tex.bind();
     Texture::set_image("assets/wood_container.jpg");
 
-    let mut player = Player::new(Vec3::new(-3.0, 10.0, -3.0));
+    let mut player = Player::new(Vec3::new(-3.0, 2.0, -3.0));
 
     create_mesh(&mut world, tex);
 
@@ -81,7 +81,8 @@ fn main() {
                 }
                 (events::Event::MouseButton { button, pressed, .. }, _) => {
                     if pressed && button == 1 {
-                        let pos = player.camera.position.as_ivec3();
+                        let mut pos = player.camera.position.as_ivec3();
+                        pos.y -= 1;
                         match world.get_voxel(&pos).is_some() {
                             true => world.remove_voxel(&pos),
                             false => world.set_voxel(pos),
@@ -97,7 +98,7 @@ fn main() {
         game_state.last_player = Some(PlayerState::new(player.step(
             &world,
             delta_time,
-            &input_state,
+            &mut input_state,
             game_state.last_player.as_ref(),
         )));
 

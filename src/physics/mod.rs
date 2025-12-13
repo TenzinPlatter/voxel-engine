@@ -1,6 +1,7 @@
 use glam::Vec3;
 
 pub const PHYSICS_DT: f32 = 1. / 120.;
+pub const GRAVITY: f32 = -9.81;
 
 #[derive(Clone, Debug)]
 pub struct PhysicsBody {
@@ -8,8 +9,6 @@ pub struct PhysicsBody {
     pub velocity: Vec3,
     pub size: Vec3,
     pub accumulator: f32,
-    /// how many milliseconds we have been accelerating due to gravity
-    pub gravity_accumulator: f32,
 }
 
 impl PhysicsBody {
@@ -20,7 +19,6 @@ impl PhysicsBody {
             velocity: Vec3::ZERO,
             size,
             accumulator: 0.,
-            gravity_accumulator: 0.
         }
     }
 }
