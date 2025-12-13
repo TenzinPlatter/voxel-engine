@@ -1,7 +1,5 @@
 use glam::{Mat4, Vec3};
 
-use crate::input::InputState;
-
 const WORLD_UP: Vec3 = Vec3::Y;
 
 pub struct Camera {

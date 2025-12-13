@@ -39,7 +39,7 @@ impl Vertex for VertexTex {
             let vec2_size: i32 = size_of::<Vec2>().try_into().unwrap();
             let stride = vec3_size + vec2_size;
             // setup position attribute
-            glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE.0 as u8, stride, 0 as *const _);
+            glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE.0 as u8, stride, std::ptr::null());
             // setup color attribute
             glVertexAttribPointer(
                 1,
@@ -91,7 +91,7 @@ impl Vertex for VertexColor {
             let vec3_size: i32 = size_of::<Vec3>() as i32;
 
             // setup position attribute
-            glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE.0 as u8, 2 * vec3_size, 0 as *const _);
+            glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE.0 as u8, 2 * vec3_size, std::ptr::null());
 
             // setup color attribute
             glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE.0 as u8, 2 * vec3_size, vec3_size as *const _);
