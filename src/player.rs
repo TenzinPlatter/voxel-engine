@@ -36,7 +36,7 @@ impl Player {
     /// Creates a new player at the given position with default settings.
     pub fn new(position: Vec3) -> Self {
         Self {
-            body: PhysicsBody::new(position, Vec3::ZERO),
+            body: PhysicsBody::new(position, Vec3::new(1., 2., 1.)),
             camera: Camera::looking_at(position, Vec3::ZERO),
             mouse_sensitivity: DEFAULT_MOUSE_SENS,
             move_speed: DEFAULT_PLAYER_SPEED,
@@ -82,8 +82,7 @@ impl Player {
     /// Calculates the player's velocity vector from input and physics.
     fn get_velocity_vec(&mut self, input_state: &InputState, frame_delta: f32, is_colliding: bool) -> Vec3 {
         let input_vel = input_state.as_vel();
-        let input_vel_transformed =
-            (self.camera.front * input_vel.x) + (self.camera.right * input_vel.z);
+        let input_vel_transformed = (self.camera.front * input_vel.x) + (self.camera.right * input_vel.z);
 
         self.body.gravity_accumulator = if input_state.up.just_pressed || is_colliding {
             0.
