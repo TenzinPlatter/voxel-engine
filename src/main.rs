@@ -3,15 +3,9 @@ use beryllium::*;
 use gl33::{global_loader::*, *};
 use glam::Vec3;
 use voxel_engine::{
-    GameState, create_mesh,
-    engine::world::World,
-    input::InputState,
-    player::{Player, PlayerState},
-    render::{
-        PolygonMode, clear_color, polygon_mode,
-        renderer::{Renderer, Viewport},
-        texture::Texture,
-    },
+    create_mesh, engine::world::World, input::InputState, player::{Player, PlayerState}, render::{
+        clear_color, polygon_mode, renderer::{Renderer, Viewport}, texture::Texture, PolygonMode
+    }, GameState
 };
 
 const VERT_SHADER: &str = include_str!("../shaders/vertex.glsl");
@@ -46,6 +40,8 @@ fn main() {
     Texture::set_image("assets/wood_container.jpg");
 
     let mut player = Player::new(Vec3::new(-3.0, 2.0, -3.0));
+
+    // TODO: create 2D rendering pipeline for UI elements like crosshair
 
     create_mesh(&mut world, tex);
 
