@@ -5,7 +5,7 @@ use glam::Vec3;
 use voxel_engine::{
     create_mesh, engine::world::World, input::InputState, player::{Player, PlayerState}, render::{
         clear_color, polygon_mode, renderer::{Renderer, Viewport}, texture::Texture, PolygonMode
-    }, GameState
+    }, Resources, State
 };
 
 const VERT_SHADER: &str = include_str!("../shaders/vertex.glsl");
@@ -13,6 +13,8 @@ const VERT_SHADER: &str = include_str!("../shaders/vertex.glsl");
 const FRAG_SHADER: &str = include_str!("../shaders/fragment.glsl");
 
 fn main() {
+    env_logger::init();
+
     let (sdl, win) = voxel_engine::init_sdl_and_win();
 
     unsafe { load_global_gl(&|p_name| win.get_proc_address(p_name)) };
@@ -32,18 +34,19 @@ fn main() {
         glViewport(0, 0, drawable_width, drawable_height);
     }
 
-    let mut game_state = GameState::default();
+    let mut game_state = State::default();
     let mut world = World::default();
     let renderer = Renderer::new(VERT_SHADER, FRAG_SHADER);
+    let resources = Resources::new();
     let tex = Texture::new().expect("Failed to create texture");
     tex.bind();
-    Texture::set_image("assets/wood_container.jpg");
+    Texture::set_image("assets/minecraft-texture-atlas-512px.png");
 
     let mut player = Player::new(Vec3::new(-3.0, 2.0, -3.0));
 
     // TODO: create 2D rendering pipeline for UI elements like crosshair
 
-    create_mesh(&mut world, tex);
+    create_mesh(&mut world, tex, &resources);
 
     clear_color(0.2, 0.3, 0.3, 1.0);
     polygon_mode(PolygonMode::Fill);
@@ -84,7 +87,7 @@ fn main() {
                             false => world.set_voxel(pos),
                         };
 
-                        world.rebuild_mesh(Some(tex));
+                        world.rebuild_mesh(Some(tex), &resources);
                     }
                 }
                 _ => {}
@@ -97,6 +100,8 @@ fn main() {
             &mut input_state,
             game_state.last_player.as_ref(),
         )));
+
+        world.set_looking_at_vox(&player);
 
         renderer.render_mesh(
             world.mesh.as_ref().expect("Mesh shouldve been build on world init"),

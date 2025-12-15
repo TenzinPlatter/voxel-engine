@@ -8,7 +8,7 @@ use beryllium::{video::GlWindow, *};
 use glam::IVec3;
 
 use crate::{
-    engine::world::World, player::PlayerState, render::texture::Texture
+    engine::{block::{parse_block_atlas, BlockAtlas}, world::World}, player::PlayerState, render::texture::Texture
 };
 
 const WIDTH: i32 = 1600;
@@ -18,9 +18,21 @@ const HEIGHT: i32 = 900;
 const WINDOW_TITLE: &str = "(float)";
 
 #[derive(Default)]
-pub struct GameState {
+pub struct State {
     pub last_player: Option<PlayerState>,
     pub current_player: Option<PlayerState>,
+}
+
+pub struct Resources {
+    block_atlas: BlockAtlas,
+}
+
+impl Resources {
+    pub fn new() -> Self {
+        Self {
+            block_atlas: parse_block_atlas(),
+        }
+    }
 }
 
 /// Initializes SDL and creates an OpenGL window with default settings.
@@ -60,12 +72,12 @@ pub fn radians_to_degrees(radians: f32) -> f32 {
 }
 
 /// Creates a flat ground mesh in the world from -32 to 32 on x and z axes.
-pub fn create_mesh(world: &mut World, tex: Texture) {
+pub fn create_mesh(world: &mut World, tex: Texture, resources: &Resources) {
     for z in -32..32 {
         for x in -32..32 {
             world.set_voxel(IVec3::new(x, 0, z));
         }
     }
 
-    world.rebuild_mesh(Some(tex));
+    world.rebuild_mesh(Some(tex), resources);
 }

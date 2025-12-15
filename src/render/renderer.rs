@@ -6,7 +6,7 @@ pub struct Renderer {
     shader_program: ShaderProgram,
 }
 
-// TEMP, should this live here? should it exist?
+// TEMP: should this live here? should it exist?
 pub struct Viewport {
     pub width: i32,
     pub height: i32,

@@ -24,17 +24,21 @@ impl Texture {
     pub fn set_image(img_path: &str) {
         let img = image::open(img_path).expect("Failed to load texture image");
 
+        // Convert to RGBA8 and flip vertically (OpenGL expects bottom-left origin)
+        let rgba_img = img.to_rgba8();
+        let flipped = image::imageops::flip_vertical(&rgba_img);
+
         unsafe {
             glTexImage2D(
                 GL_TEXTURE_2D,
                 0,
-                GL_RGB.0 as i32,
-                img.width() as i32,
-                img.height() as i32,
+                GL_RGBA.0 as i32,
+                flipped.width() as i32,
+                flipped.height() as i32,
                 0,
-                GL_RGB,
+                GL_RGBA,
                 GL_UNSIGNED_BYTE,
-                img.as_bytes().as_ptr().cast(),
+                flipped.as_ptr().cast(),
             );
             glGenerateMipmap(GL_TEXTURE_2D);
         }
