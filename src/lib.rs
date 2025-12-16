@@ -1,14 +1,17 @@
 pub mod engine;
 pub mod input;
-pub mod render;
 pub mod physics;
 pub mod player;
+pub mod render;
 
+use anyhow::Result;
 use beryllium::{video::GlWindow, *};
 use glam::IVec3;
 
 use crate::{
-    engine::{block::{parse_block_atlas, BlockAtlas}, world::World}, player::PlayerState, render::texture::Texture
+    engine::world::World,
+    player::PlayerState,
+    render::{atlas::TextureAtlas, texture::Texture},
 };
 
 const WIDTH: i32 = 1600;
@@ -24,14 +27,14 @@ pub struct State {
 }
 
 pub struct Resources {
-    block_atlas: BlockAtlas,
+    atlas: TextureAtlas,
 }
 
 impl Resources {
-    pub fn new() -> Self {
-        Self {
-            block_atlas: parse_block_atlas(),
-        }
+    pub fn build() -> Result<Self> {
+        Ok(Self {
+            atlas: TextureAtlas::try_parse_block_atlas()?,
+        })
     }
 }
 
@@ -72,12 +75,12 @@ pub fn radians_to_degrees(radians: f32) -> f32 {
 }
 
 /// Creates a flat ground mesh in the world from -32 to 32 on x and z axes.
-pub fn create_mesh(world: &mut World, tex: Texture, resources: &Resources) {
+pub fn create_mesh(world: &mut World, resources: &Resources) {
     for z in -32..32 {
         for x in -32..32 {
             world.set_voxel(IVec3::new(x, 0, z));
         }
     }
 
-    world.rebuild_mesh(Some(tex), resources);
+    world.rebuild_mesh(resources);
 }

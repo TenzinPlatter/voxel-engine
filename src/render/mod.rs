@@ -5,6 +5,7 @@ pub mod shader;
 pub mod texture;
 pub mod vertex;
 pub mod renderer;
+pub mod atlas;
 
 use bytemuck::cast_slice;
 use gl33::{global_loader::*, *};

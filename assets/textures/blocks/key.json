@@ -1,0 +1,8 @@
+{
+  "dirt": {
+    "img": "dirt.png"
+  },
+  "stone": {
+    "img": "stone.png"
+  }
+}

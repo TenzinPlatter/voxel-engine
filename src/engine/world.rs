@@ -1,9 +1,13 @@
 use std::collections::HashMap;
 
-use glam::{IVec3, Mat4, Vec3};
+use glam::{IVec3, Mat4};
 
 use crate::{
-    engine::{block::BlockType, voxel::Voxel}, physics::{colliding_with_aabb, PhysicsBody}, player::{Player, DEFAULT_PLAYER_REACH}, render::{mesh::Mesh, texture::Texture}, Resources
+    Resources,
+    engine::{block::BlockType, voxel::Voxel},
+    physics::{PhysicsBody, colliding_with_aabb},
+    player::{DEFAULT_PLAYER_REACH, Player},
+    render::mesh::Mesh,
 };
 
 #[derive(Default)]
@@ -14,7 +18,7 @@ pub struct World {
 
 impl World {
     /// Rebuilds the world's mesh from all voxels, optionally using a new texture.
-    pub fn rebuild_mesh(&mut self, texture: Option<Texture>, resources: &Resources) {
+    pub fn rebuild_mesh(&mut self, resources: &Resources) {
         // TODO: presize this to correct size
         let mut verticies = vec![];
 
@@ -22,16 +26,7 @@ impl World {
             verticies.extend(vox.get_verticies(resources));
         }
 
-        let tex = if let Some(tex) = texture {
-            tex
-        } else if let Some(mesh) = self.mesh.take() {
-            mesh.texture
-        } else {
-            // TODO: better way to handle this?
-            Texture::new().unwrap()
-        };
-
-        self.mesh = Some(Mesh::new(&verticies, Mat4::IDENTITY, tex));
+        self.mesh = Some(Mesh::new(&verticies, Mat4::IDENTITY, resources.atlas.texture));
     }
 
     /// Gets the voxel at the given position, returning None if it doesn't exist.
@@ -59,15 +54,12 @@ impl World {
     pub fn set_looking_at_vox(&mut self, player: &Player) {
         let looking_at_vox = self.get_looking_at_vox(player);
 
-        if let Some(vox) = looking_at_vox {
-        }
+        if let Some(vox) = looking_at_vox {}
     }
 
     /// Return the voxel that the player is looking at within the players reach, if there is one
     fn get_looking_at_vox(&self, player: &Player) -> Option<&Voxel> {
-        let ray = |n: f32| {
-            player.camera.position + n * player.camera.front
-        };
+        let ray = |n: f32| player.camera.position + n * player.camera.front;
 
         for i in 0..(DEFAULT_PLAYER_REACH as i32) {
             let vox = self.voxels.get(&ray(i as f32).as_ivec3());

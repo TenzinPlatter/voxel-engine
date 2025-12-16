@@ -23,22 +23,28 @@ impl Texture {
     /// Loads an image from the given path and sets it as the texture data.
     pub fn set_image(img_path: &str) {
         let img = image::open(img_path).expect("Failed to load texture image");
-
         // Convert to RGBA8 and flip vertically (OpenGL expects bottom-left origin)
         let rgba_img = img.to_rgba8();
-        let flipped = image::imageops::flip_vertical(&rgba_img);
+        // TODO: maybe a way to do this without cloning in future? idk ill probs be removing this
+        // fn anyway
+        let pixels = rgba_img.to_vec();
 
+        Texture::set_from_pixels(pixels, rgba_img.width() as usize, rgba_img.height() as usize);
+    }
+
+    /// Assumes a y=0 -> top formatted image, will flip it
+    pub fn set_from_pixels(pixels: Vec<u8>, width_px: usize, height_px: usize) {
         unsafe {
             glTexImage2D(
                 GL_TEXTURE_2D,
                 0,
                 GL_RGBA.0 as i32,
-                flipped.width() as i32,
-                flipped.height() as i32,
+                width_px as i32,
+                height_px as i32,
                 0,
                 GL_RGBA,
                 GL_UNSIGNED_BYTE,
-                flipped.as_ptr().cast(),
+                pixels.as_ptr().cast(),
             );
             glGenerateMipmap(GL_TEXTURE_2D);
         }
@@ -66,5 +72,27 @@ pub fn setup_texture_opts() {
         // set texture filtering to use mipmaps
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR.0 as i32);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR.0 as i32);
+    }
+}
+
+/// Flips the pixels in the `pixels` buf horizontally, assuming that they represent an image of
+/// width `width`
+fn flip_pixels_horizontal_inplace(pixels: &mut [u8], width: usize) {
+    // height
+    let nrows = pixels.len() / width;
+
+    if nrows % 2 == 1 {
+        // we have odd height atlas? how? should be power of 2
+        panic!("Recieved atlas with odd no. of rows");
+    }
+
+    // thing at the split index goes to right half, so we split on the first entry of the first row
+    // in the bottom half
+    let (top, bottom) = pixels.split_at_mut(width * (nrows / 2));
+
+    for (trow, brow) in top.chunks_mut(width).zip(bottom.chunks_mut(width).rev()) {
+        // NOTE: this will panic if slices are not same sized, i.e. pixels is not actually an image
+        // with width `width`
+        trow.swap_with_slice(brow);
     }
 }
