@@ -1,4 +1,4 @@
-use anyhow::{Result, bail};
+use anyhow::{bail, Context, Result};
 use glam::{UVec2, Vec2};
 use image::{ImageBuffer, Rgba};
 use serde::Deserialize;
@@ -47,7 +47,12 @@ impl TextureAtlas {
         let (atlas_pixels_buf, (atlas_width_px, atlas_height_px)) = generate_texture_atlas_pixels(&textures)?;
         let textures = get_textures_as_uv(textures, atlas_width_px, atlas_height_px);
 
-        write_image_from_pixels(&atlas_pixels_buf, "/home/tenzin/.cache/voxel-engine/atlas.png");
+        let dbg_img_dir = Path::new("/home/tenzin/.cache/voxel-engine");
+        if dbg_img_dir.is_dir() {
+            std::fs::create_dir_all(dbg_img_dir).context("Failed to create dbg img dir")?;
+        }
+
+        write_image_from_pixels(&atlas_pixels_buf, dbg_img_dir.join("atlas.png").to_str().unwrap());
 
         let texture = match Texture::new() {
             Some(t) => t,
