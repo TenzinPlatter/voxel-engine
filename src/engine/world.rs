@@ -36,7 +36,14 @@ impl World {
 
     /// Adds a voxel at the given position, returning the old value if one existed.
     pub fn set_voxel(&mut self, pos: IVec3) -> Option<Voxel> {
-        self.voxels.insert(pos, Voxel::new(pos, BlockType::Dirt))
+        let random_bit = rand::random::<u8>() % 2;
+        let block_type = match random_bit {
+            0 => BlockType::Dirt,
+            1 => BlockType::Stone,
+            _ => panic!("how"),
+        };
+
+        self.voxels.insert(pos, Voxel::new(pos, block_type))
     }
 
     /// Removes the voxel at the given position, returning it if it existed.

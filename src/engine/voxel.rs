@@ -69,17 +69,12 @@ impl Voxel {
         ];
 
 
-        let random_bit = rand::random::<u8>() % 2;
-
         // UV coordinates for each corner of a face
         // let uvs = dbg!(texture_coordinates_from_block_id(resources, self.block_type).as_uv_corners());
         let atlas_entry = resources
             .atlas
             .textures
-            .get(match random_bit {
-                0 => "dirt",
-                _ => "stone",
-            })
+            .get(self.block_type.as_str())
             .unwrap_or_else(|| panic!("Block type: {} doesn't exist in atlas", self.block_type.as_str()));
         let uvs = atlas_entry.to_uvs();
 

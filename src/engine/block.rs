@@ -9,7 +9,6 @@ use std::fmt::Display;
 #[serde(rename_all = "lowercase")]
 pub enum BlockType {
     Dirt,
-    Grass,
     Stone,
 }
 
@@ -17,7 +16,6 @@ impl BlockType {
     pub fn as_str(&self) -> &'static str {
         match self {
             BlockType::Dirt => "dirt",
-            BlockType::Grass => "grass",
             BlockType::Stone => "stone",
         }
     }
