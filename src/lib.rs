@@ -9,9 +9,9 @@ use beryllium::{video::GlWindow, *};
 use glam::IVec3;
 
 use crate::{
-    engine::world::World,
+    engine::{voxel::Voxel, world::World},
     player::PlayerState,
-    render::{atlas::TextureAtlas, texture::Texture},
+    render::atlas::TextureAtlas,
 };
 
 const WIDTH: i32 = 1600;
@@ -24,6 +24,7 @@ const WINDOW_TITLE: &str = "(float)";
 pub struct State {
     pub last_player: Option<PlayerState>,
     pub current_player: Option<PlayerState>,
+    pub looking_at_vox_pos: Option<IVec3>,
 }
 
 pub struct Resources {

@@ -35,7 +35,7 @@ fn main() -> Result<()> {
         glViewport(0, 0, drawable_width, drawable_height);
     }
 
-    let mut game_state = State::default();
+    let mut state = State::default();
     let mut world = World::default();
     let renderer = Renderer::new(VERT_SHADER, FRAG_SHADER);
     let resources = Resources::build()?;
@@ -92,14 +92,14 @@ fn main() -> Result<()> {
             }
         }
 
-        game_state.last_player = Some(PlayerState::new(player.step(
+        state.last_player = Some(PlayerState::new(player.step(
             &world,
             delta_time,
             &mut input_state,
-            game_state.last_player.as_ref(),
+            state.last_player.as_ref(),
         )));
 
-        world.set_looking_at_vox(&player);
+        world.set_looking_at_vox(&mut state, &player);
 
         renderer.render_mesh(
             world.mesh.as_ref().expect("Mesh shouldve been build on world init"),

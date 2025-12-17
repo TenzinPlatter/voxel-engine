@@ -3,11 +3,7 @@ use std::collections::HashMap;
 use glam::{IVec3, Mat4};
 
 use crate::{
-    Resources,
-    engine::{block::BlockType, voxel::Voxel},
-    physics::{PhysicsBody, colliding_with_aabb},
-    player::{DEFAULT_PLAYER_REACH, Player},
-    render::mesh::Mesh,
+    engine::{block::BlockType, voxel::Voxel}, physics::{colliding_with_aabb, PhysicsBody}, player::{Player, DEFAULT_PLAYER_REACH}, render::mesh::Mesh, Resources, State
 };
 
 #[derive(Default)]
@@ -58,20 +54,19 @@ impl World {
         self.voxels.values().any(|v| colliding_with_aabb(&v.body, other))
     }
 
-    pub fn set_looking_at_vox(&mut self, player: &Player) {
-        let looking_at_vox = self.get_looking_at_vox(player);
-
-        if let Some(vox) = looking_at_vox {}
+    pub fn set_looking_at_vox(&self, state: &mut State, player: &Player) {
+        state.looking_at_vox_pos = self.get_looking_at_vox_pos(player);
     }
 
     /// Return the voxel that the player is looking at within the players reach, if there is one
-    fn get_looking_at_vox(&self, player: &Player) -> Option<&Voxel> {
+    fn get_looking_at_vox_pos(&self, player: &Player) -> Option<IVec3> {
         let ray = |n: f32| player.camera.position + n * player.camera.front;
 
         for i in 0..(DEFAULT_PLAYER_REACH as i32) {
-            let vox = self.voxels.get(&ray(i as f32).as_ivec3());
+            let pos = ray(i as f32).as_ivec3();
+            let vox = self.voxels.get(&pos);
             if vox.is_some() {
-                return vox;
+                return Some(pos);
             }
         }
 
