@@ -81,7 +81,7 @@ impl Voxel {
                 _ => "stone",
             })
             .unwrap_or_else(|| panic!("Block type: {} doesn't exist in atlas", self.block_type.as_str()));
-        let uvs = dbg!(atlas_entry.to_uvs());
+        let uvs = atlas_entry.to_uvs();
 
         let mut vertices = [VertexTex::new(Vec3::ZERO, Vec2::ZERO); 36];
         let mut vertex_index = 0;

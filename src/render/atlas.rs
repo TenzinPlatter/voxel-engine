@@ -3,7 +3,7 @@ use glam::{UVec2, Vec2};
 use image::{ImageBuffer, Rgba};
 use serde::Deserialize;
 
-use std::{collections::HashMap, path::Path};
+use std::{collections::HashMap, path::{Path, PathBuf}};
 
 use crate::render::texture::Texture;
 
@@ -52,7 +52,7 @@ impl TextureAtlas {
             std::fs::create_dir_all(dbg_img_dir).context("Failed to create dbg img dir")?;
         }
 
-        write_image_from_pixels(&atlas_pixels_buf, dbg_img_dir.join("atlas.png").to_str().unwrap());
+        write_image_from_pixels(&atlas_pixels_buf, dbg_img_dir.join("atlas.png"));
 
         let texture = match Texture::new() {
             Some(t) => t,
@@ -106,15 +106,21 @@ fn generate_texture_atlas_pixels(textures: &HashMap<String, TextureAtlasKeyEntry
 
         let rgba_img = img.to_rgba8();
         let rbga_buf = rgba_img.as_raw();
-        let top_left_px = UVec2::new((i % width_px) as u32, (i / height_px) as u32);
 
-        for i in 0..16 {
+        // assert buf is 4 bytes per px
+        if rbga_buf.len() != 16 * 16 * 4 {
+            bail!("img buf is not {} pixels (got {})", 16 * 16 * 4, rbga_buf.len());
+        }
+
+        let top_left_px = dbg!(UVec2::new((i % width_px) as u32 * 16, (i / height_px) as u32));
+
+        for n in 0..16 {
             // standard offset for 2D coord -> 1D
             let dest_offset_px = (top_left_px.x + (top_left_px.y * 16 * width_px as u32)) as usize;
-            let dest_offset = dest_offset_px + (i * width_px) * BYTES_PER_PX;
+            let dest_offset = (dest_offset_px  + (n * width_px)) * BYTES_PER_PX;
 
             // same thing, we just are always copying blocks of 16 (a row)
-            let src_offset = (i * 16) * BYTES_PER_PX;
+            let src_offset = (n * 16) * BYTES_PER_PX;
 
             let nbytes = 16 * BYTES_PER_PX;
 
@@ -128,7 +134,7 @@ fn generate_texture_atlas_pixels(textures: &HashMap<String, TextureAtlasKeyEntry
     Ok((pixel_buf, (width_px, height_px)))
 }
 
-fn write_image_from_pixels(pixels: &[u8], path: &str) {
+fn write_image_from_pixels<P: AsRef<Path>>(pixels: &[u8], path: P) {
     // Assumes the image is square and 4 bytes per pixel (RGBA)
     let side = (pixels.len() / 4).isqrt() as u32;
     let img: ImageBuffer<Rgba<u8>, _> =
