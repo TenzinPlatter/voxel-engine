@@ -8,7 +8,7 @@ use crate::{
 
 #[derive(Default)]
 pub struct World {
-    voxels: HashMap<IVec3, Voxel>,
+    pub voxels: HashMap<IVec3, Voxel>,
     pub mesh: Option<Mesh>,
 }
 
@@ -23,11 +23,6 @@ impl World {
         }
 
         self.mesh = Some(Mesh::new(&verticies, Mat4::IDENTITY, resources.atlas.texture));
-    }
-
-    /// Gets the voxel at the given position, returning None if it doesn't exist.
-    pub fn get_voxel(&self, pos: &IVec3) -> Option<&Voxel> {
-        self.voxels.get(pos)
     }
 
     /// Adds a voxel at the given position, returning the old value if one existed.

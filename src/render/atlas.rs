@@ -1,13 +1,18 @@
 use anyhow::{Context, Result, bail};
 use glam::{UVec2, Vec2};
 use image::{ImageBuffer, Rgba};
+use log::info;
 use serde::Deserialize;
 
-use std::{collections::BTreeMap, path::Path};
+use std::{
+    collections::BTreeMap,
+    fs::read_dir,
+    path::{Path, PathBuf},
+};
 
 use crate::render::texture::Texture;
 
-const BLOCK_IMG_PREFIX: &str = "assets/textures/blocks/imgs/";
+const TEXTURES_DIR: &str = "assets/textures/";
 const BYTES_PER_PX: usize = 4;
 const TEXTURE_SIZE_PX: usize = 32;
 const TEXTURE_SIZE_PX_WITH_PADDING: usize = TEXTURE_SIZE_PX + 2;
@@ -44,9 +49,9 @@ impl TextureAtlasEntry {
 
 impl TextureAtlas {
     /// NOTE: assumes all textures are 16x16
-    pub fn try_parse_block_atlas() -> Result<Self> {
-        let key_contents = include_str!("../../assets/textures/blocks/key.json");
-        let textures: BTreeMap<String, TextureAtlasKeyEntry> = serde_json::from_str(key_contents)?;
+    pub fn try_parse_atlas() -> Result<Self> {
+        let textures = get_textures()?;
+
         let (atlas_pixels_buf, (atlas_width_px, atlas_height_px)) = generate_texture_atlas_pixels(&textures)?;
         let textures = get_textures_as_uv(textures, atlas_width_px, atlas_height_px);
 
@@ -119,7 +124,7 @@ fn generate_texture_atlas_pixels(textures: &BTreeMap<String, TextureAtlasKeyEntr
     let mut pixel_buf: Vec<u8> = vec![255; size];
 
     for (i, (name, tex)) in textures.iter().enumerate() {
-        let img = image::open(BLOCK_IMG_PREFIX.to_owned() + &tex.img)?;
+        let img = image::open(&tex.img)?;
 
         if img.width() != TEXTURE_SIZE_PX as u32 || img.height() != TEXTURE_SIZE_PX as u32 {
             bail!(
@@ -173,4 +178,41 @@ fn write_image_from_pixels<P: AsRef<Path>>(pixels: &[u8], path: P) {
     let img: ImageBuffer<Rgba<u8>, _> =
         ImageBuffer::from_raw(side, side, pixels.to_vec()).expect("Failed to create image buffer from raw pixels");
     img.save(path).expect("Failed to save image");
+}
+
+fn get_texture_dirs() -> Result<Vec<PathBuf>> {
+    Ok(read_dir(TEXTURES_DIR)?
+        .filter_map(|entry| entry.ok())
+        .map(|entry| entry.path())
+        .filter(|path| path.is_dir())
+        .filter(|dir| dir.join("key.json").is_file())
+        .collect())
+}
+
+fn get_textures() -> Result<BTreeMap<String, TextureAtlasKeyEntry>> {
+    let texture_dirs = get_texture_dirs()?;
+    let mut textures: BTreeMap<String, TextureAtlasKeyEntry> = BTreeMap::new();
+    for dir in &texture_dirs {
+        info!("Found texture dir: {:?}", dir);
+        let key_path = dir.join("key.json");
+        let contents =
+            std::fs::read_to_string(&key_path).with_context(|| format!("Failed to read texture atlas key at {:?}", key_path))?;
+        let entries = serde_json::from_str::<BTreeMap<String, TextureAtlasKeyEntry>>(&contents)
+            .with_context(|| format!("Failed to parse texture atlas key at {:?}", key_path))?;
+
+        for entry in entries {
+            let texture_path = dir.join("imgs").join(&entry.1.img);
+            if !texture_path.is_file() {
+                bail!("Texture image file {:?} does not exist", texture_path);
+            }
+            textures.insert(
+                entry.0,
+                TextureAtlasKeyEntry {
+                    img: texture_path.to_string_lossy().to_string(),
+                },
+            );
+        }
+    }
+
+    Ok(textures)
 }

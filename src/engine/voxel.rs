@@ -2,6 +2,7 @@ use glam::{IVec3, Vec2, Vec3};
 
 use crate::{Resources, engine::block::BlockType, physics::PhysicsBody, render::vertex::VertexTex};
 
+#[derive(Debug)]
 pub struct Voxel {
     pub body: PhysicsBody,
     pub block_type: BlockType,

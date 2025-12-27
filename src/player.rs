@@ -7,7 +7,7 @@ use crate::{
     render::camera::Camera,
 };
 
-pub(crate) const DEFAULT_MOUSE_SENS: f32 = 0.2;
+pub(crate) const DEFAULT_MOUSE_SENS: f32 = 0.1;
 pub(crate) const DEFAULT_PLAYER_SPEED: f32 = 6.0;
 pub(crate) const DEFAULT_PLAYER_JUMP_HEIGHT: f32 = 1.25;
 pub(crate) const DEFAULT_PLAYER_REACH: f32 = 5.0;

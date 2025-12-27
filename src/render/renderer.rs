@@ -1,9 +1,17 @@
 use glam::Mat4;
 
-use crate::{degrees_to_radians, render::{camera::Camera, mesh::Mesh, shader::{ShaderProgram, ShaderUniformType}}};
+use crate::{
+    degrees_to_radians,
+    render::{
+        camera::Camera,
+        mesh::Mesh,
+        shader::{ShaderProgram, ShaderUniformType},
+    },
+};
 
 pub struct Renderer {
-    shader_program: ShaderProgram,
+    shader_program_3d: ShaderProgram,
+    shader_program_2d: ShaderProgram,
 }
 
 // TEMP: should this live here? should it exist?
@@ -14,24 +22,35 @@ pub struct Viewport {
 
 impl Renderer {
     /// Creates a new renderer with the given vertex and fragment shaders.
-    pub fn new(vertex_shader: &str, fragment_shader: &str) -> Self {
-        let shader_program =
-            ShaderProgram::from_vert_frag(vertex_shader, fragment_shader).expect("Failed to create shader program");
+    /// # Arguments
+    /// * `shaders_3d` - A tuple containing the vertex and fragment shader source code for 3D rendering.
+    ///   Order: (vertex_shader, fragment_shader)
+    /// * `shaders_2d` - A tuple containing the vertex and fragment shader source code for 2D rendering.
+    ///   Order: (vertex_shader, fragment_shader)
+    pub fn new(shaders_3d: (&str, &str), shaders_2d: (&str, &str)) -> Self {
+        let shader_program_3d =
+            ShaderProgram::from_vert_frag(shaders_3d.0, shaders_3d.1).expect("Failed to create shader program");
+        let shader_program_2d =
+            ShaderProgram::from_vert_frag(shaders_2d.0, shaders_2d.1).expect("Failed to create shader program");
 
-        let res = Self { shader_program };
-        // TODO: does this need to happen?
-        res.bind();
-
-        res
+        Self {
+            shader_program_3d,
+            shader_program_2d,
+        }
     }
 
     /// Binds the renderer's shader program for use.
-    pub fn bind(&self) {
-        self.shader_program.use_program();
+    pub fn bind_3d(&self) {
+        self.shader_program_3d.use_program()
+    }
+
+    pub fn bind_2d(&self) {
+        self.shader_program_2d.use_program()
     }
 
     /// Renders a mesh with the given camera and viewport settings.
-    pub fn render_mesh(&self, mesh: &Mesh, camera: &Camera, viewport: &Viewport) {
+    pub fn render_mesh_3d(&self, mesh: &Mesh, camera: &Camera, viewport: &Viewport) {
+        self.bind_3d();
         let view = camera.view_matrix();
         let proj = Mat4::perspective_rh_gl(
             degrees_to_radians(45.0),
@@ -40,10 +59,18 @@ impl Renderer {
             100.0,
         );
 
-        Mat4::set_uniform(&self.shader_program, "view", view);
-        Mat4::set_uniform(&self.shader_program, "proj", proj);
-        Mat4::set_uniform(&self.shader_program, "transform", mesh.transform);
+        self.shader_program_3d.set_uniform("view", view);
+        self.shader_program_3d.set_uniform("proj", proj);
+        self.shader_program_3d.set_uniform("transform", mesh.transform);
 
-        mesh.draw(&self.shader_program);
+        mesh.draw(&self.shader_program_3d);
+    }
+
+    pub fn render_mesh_2d(&self, mesh: &Mesh, viewport: &Viewport) {
+        self.bind_2d();
+        let proj = Mat4::orthographic_rh_gl(0.0, viewport.width as f32, viewport.height as f32, 0.0, -1.0, 1.0);
+        self.shader_program_2d.set_uniform("proj", proj);
+
+        mesh.draw(&self.shader_program_2d);
     }
 }

@@ -1,9 +1,9 @@
 use gl33::{global_loader::*, *};
 use glam::{Mat4, Vec3};
 
-pub trait ShaderUniformType {
+pub trait ShaderUniformType<T> {
     /// Sets a uniform value in the given shader program.
-    fn set_uniform(shader_prog: &ShaderProgram, name: &str, val: Self);
+    fn set_uniform(&self, name: &str, val: T);
 }
 
 /// The types of shader object.
@@ -109,21 +109,21 @@ impl ShaderProgram {
     }
 }
 
-impl ShaderUniformType for Vec3 {
-    fn set_uniform(shader_prog: &ShaderProgram, name: &str, val: Self) {
+impl ShaderUniformType<Vec3> for ShaderProgram {
+    fn set_uniform(&self, name: &str, val: Vec3) {
         let cstr = std::ffi::CString::new(name).unwrap();
         unsafe {
-            let location = glGetUniformLocation(shader_prog.0, cstr.as_bytes().as_ptr());
+            let location = glGetUniformLocation(self.0, cstr.as_bytes().as_ptr());
             glUniform3f(location, val.x, val.y, val.z);
         }
     }
 }
 
-impl ShaderUniformType for Mat4 {
-    fn set_uniform(shader_prog: &ShaderProgram, name: &str, val: Self) {
+impl ShaderUniformType<Mat4> for ShaderProgram {
+    fn set_uniform(&self, name: &str, val: Mat4) {
         let cstr = std::ffi::CString::new(name).unwrap();
         unsafe {
-            let location = glGetUniformLocation(shader_prog.0, cstr.as_bytes().as_ptr());
+            let location = glGetUniformLocation(self.0, cstr.as_bytes().as_ptr());
             glUniformMatrix4fv(location, 1, GL_FALSE.0 as u8, val.as_ref().as_ptr());
         }
     }

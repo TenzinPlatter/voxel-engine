@@ -90,9 +90,24 @@ pub fn draw_voxel_at(shader_program: &ShaderProgram, pos: &IVec3, rotation_mat: 
         model *= rot;
     }
 
-    Mat4::set_uniform(shader_program, "model", model);
+    shader_program.set_uniform("model", model);
 
     unsafe {
         glDrawArrays(GL_TRIANGLES, 0, vertices.len() as i32);
+    }
+}
+
+pub fn setup_3d_rendering() {
+    unsafe {
+        glEnable(GL_DEPTH_TEST);
+        glDisable(GL_BLEND);
+    }
+}
+
+pub fn setup_2d_rendering() {
+    unsafe {
+        glDisable(GL_DEPTH_TEST);
+        glEnable(GL_BLEND);
+        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     }
 }

@@ -2,18 +2,21 @@ use bytemuck::{Pod, Zeroable};
 use gl33::{global_loader::*, *};
 use glam::{Vec2, Vec3};
 
-pub trait Vertex {
+pub trait Vertex<T>
+where
+    T: glam_traits::FloatVec + std::ops::AddAssign,
+{
     /// Configures OpenGL vertex attributes for this vertex type.
     fn configure_attributes();
 
     /// Returns a reference to the vertex position.
-    fn position(&self) -> &Vec3;
+    fn position(&self) -> &T;
 
     /// Returns a mutable reference to the vertex position.
-    fn position_mut(&mut self) -> &mut Vec3;
+    fn position_mut(&mut self) -> &mut T;
 
     /// Translates the vertex by the given offset.
-    fn translate(&mut self, offset: Vec3) {
+    fn translate(&mut self, offset: T) {
         *self.position_mut() += offset;
     }
 }
@@ -32,7 +35,14 @@ pub struct VertexTex {
     pub tex: Vec2,
 }
 
-impl Vertex for VertexTex {
+#[repr(C)]
+#[derive(Debug, Clone, Copy, Pod, Zeroable)]
+pub struct Vertex2D {
+    pub position: Vec2,
+    pub tex: Vec2,
+}
+
+impl Vertex<Vec3> for VertexTex {
     fn configure_attributes() {
         unsafe {
             let vec3_size: i32 = size_of::<Vec3>().try_into().unwrap();
@@ -77,7 +87,7 @@ impl VertexTex {
     }
 }
 
-impl Vertex for VertexColor {
+impl Vertex<Vec3> for VertexColor {
     fn position(&self) -> &Vec3 {
         &self.position
     }
@@ -111,5 +121,30 @@ impl VertexColor {
     /// Sets the color for this vertex.
     pub fn set_color(&mut self, color: Vec3) {
         self.color = color;
+    }
+}
+
+impl Vertex<Vec2> for Vertex2D {
+    fn configure_attributes() {
+        unsafe {
+            let vec2_size: i32 = size_of::<Vec2>() as i32;
+
+            // setup position attribute
+            glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE.0 as u8, 2 * vec2_size, std::ptr::null());
+
+            // setup texture attribute
+            glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE.0 as u8, 2 * vec2_size, vec2_size as *const _);
+
+            glEnableVertexAttribArray(0);
+            glEnableVertexAttribArray(1);
+        }
+    }
+
+    fn position(&self) -> &Vec2 {
+        &self.position
+    }
+
+    fn position_mut(&mut self) -> &mut Vec2 {
+        &mut self.position
     }
 }

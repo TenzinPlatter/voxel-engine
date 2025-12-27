@@ -513,6 +513,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "glam-traits"
+version = "0.3.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d4e8bd857cb1216e8fff969d667884eafae3b882b36175675cdb9cb30c456937"
+dependencies = [
+ "glam",
+]
+
+[[package]]
 name = "half"
 version = "2.7.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1342,6 +1351,7 @@ dependencies = [
  "env_logger",
  "gl33",
  "glam",
+ "glam-traits",
  "image",
  "imagine",
  "log",
