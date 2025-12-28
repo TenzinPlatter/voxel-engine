@@ -1,5 +1,9 @@
 use glam::Vec3;
 
+pub mod dda;
+pub mod hit_info;
+pub mod dda_other;
+
 pub const PHYSICS_DT: f32 = 1. / 120.;
 pub const GRAVITY: f32 = -9.81;
 

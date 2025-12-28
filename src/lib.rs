@@ -1,14 +1,19 @@
 use anyhow::Result;
 use beryllium::{video::GlWindow, *};
-use glam::{IVec3, Mat4, Vec2};
+use glam::{IVec3, Mat4, Vec2, Vec3};
 
 use crate::{
     engine::{block::BlockType, world::World},
     input::InputState,
+    physics::{
+        dda::get_looking_at_vox_pos,
+        hit_info::{self, HitInfo},
+    },
     player::{Player, PlayerState},
     render::{
         atlas::TextureAtlas,
         camera::Camera,
+        debug_line::draw_debug_line,
         mesh::Mesh,
         renderer::{Renderer, Viewport},
         vertex::Vertex2D,
@@ -90,6 +95,8 @@ pub fn create_world_mesh(world: &mut World, resources: &Resources) {
         }
     }
 
+    world.set_voxel(IVec3::new(0, 1, 0));
+
     world.rebuild_mesh(resources);
 }
 
@@ -102,12 +109,11 @@ pub fn get_delta_time(sdl: &Sdl, last_frame_time: u32) -> f32 {
 }
 
 /// Processes input events, updating the player and input state accordingly.
-/// Returns None if a quit event is received, otherwise returns Some(clicked)
-pub fn process_input_events(sdl: &Sdl, player: &mut Player, input_state: &mut InputState) -> Option<bool> {
-    let mut clicked = false;
+/// Returns whether a quit event was received.
+pub fn process_input_events(sdl: &Sdl, player: &mut Player, input_state: &mut InputState) -> bool {
     while let Some(event) = sdl.poll_events() {
         match event {
-            (events::Event::Quit, _) => return None,
+            (events::Event::Quit, _) => return true,
             (events::Event::Key { keycode, pressed, .. }, _) => {
                 input_state.set_key(keycode, pressed);
             }
@@ -115,13 +121,13 @@ pub fn process_input_events(sdl: &Sdl, player: &mut Player, input_state: &mut In
                 player.process_mouse(x_delta as f32, -y_delta as f32);
             }
             (events::Event::MouseButton { button, pressed, .. }, _) => {
-                clicked = button == 1 && pressed;
+                input_state.set_mouse_button(button, pressed);
             }
             _ => {}
         }
     }
 
-    Some(clicked)
+    false
 }
 
 pub fn update_player_and_world(
@@ -131,7 +137,6 @@ pub fn update_player_and_world(
     resources: &Resources,
     input_state: &mut InputState,
     delta_time: f32,
-    clicked: bool,
 ) {
     state.last_player = Some(PlayerState::new(player.step(
         world,
@@ -140,18 +145,45 @@ pub fn update_player_and_world(
         state.last_player.as_ref(),
     )));
 
-    world.set_looking_at_vox(state, player);
-    if clicked
-        && let Some(voxpos) = state.looking_at_vox_pos
+    let hit_info = get_looking_at_vox_pos(world, player);
+    state.looking_at_vox_pos = hit_info.map(|hit| hit.pos);
+    if let Some(hit_info) = hit_info {
+        handle_mouse_presses(input_state, state, world, resources, &hit_info);
+    }
+}
+
+pub fn handle_mouse_presses(
+    input_state: &mut InputState,
+    state: &State,
+    world: &mut World,
+    resources: &Resources,
+    hit_info: &HitInfo,
+) {
+    let mut dirty = false;
+
+    if input_state.mb3.just_pressed {
+        let to_place = hit_info.pos + hit_info.normal;
+        world.set_voxel(to_place);
+        dirty = true;
+    }
+
+    if let Some(voxpos) = state.looking_at_vox_pos
         && let Some(vox) = world.voxels.get_mut(&voxpos)
+        && input_state.mb1.just_pressed
     {
         vox.block_type = match vox.block_type {
             BlockType::Dirt => BlockType::Stone,
             BlockType::Stone => BlockType::Dirt,
         };
 
+        dirty = true;
+    }
+
+    if dirty {
         world.rebuild_mesh(resources);
     }
+
+    input_state.reset_mouse_buttons();
 }
 
 pub fn render_world(renderer: &Renderer, world: &World, player: &Player, viewport: &Viewport) {
@@ -201,11 +233,42 @@ pub fn create_ui_mesh(resources: &Resources, viewport: &Viewport) -> Mesh {
         },
     ];
 
-    println!("{:?}", vertices);
-
     Mesh::new(&vertices, Mat4::IDENTITY, resources.atlas.texture)
 }
 
 pub fn render_ui(renderer: &Renderer, mesh: &Mesh, viewport: &Viewport) {
     renderer.render_mesh_2d(mesh, viewport);
+}
+
+pub fn draw_axis(camera: &Camera, viewport: &Viewport) {
+    let axis_length = 10.0;
+    // draw at y=1 to be above ground
+    let origin = Vec3::ZERO.with_y(1.);
+
+    // X axis in red
+    draw_debug_line(
+        origin,
+        origin + Vec3::new(axis_length, 0.0, 0.0),
+        Vec3::new(1.0, 0.0, 0.0),
+        camera,
+        viewport,
+    );
+
+    // Y axis in green
+    draw_debug_line(
+        origin,
+        origin + Vec3::new(0.0, axis_length, 0.0),
+        Vec3::new(0.0, 1.0, 0.0),
+        camera,
+        viewport,
+    );
+
+    // Z axis in blue
+    draw_debug_line(
+        origin,
+        origin + Vec3::new(0.0, 0.0, axis_length),
+        Vec3::new(0.0, 0.0, 1.0),
+        camera,
+        viewport,
+    );
 }

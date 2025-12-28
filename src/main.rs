@@ -4,14 +4,15 @@ use anyhow::Result;
 use gl33::{global_loader::*, *};
 use glam::Vec3;
 use voxel_engine::{
-    Resources, State, create_ui_mesh, create_world_mesh,
+    Resources, State, create_ui_mesh, create_world_mesh, draw_axis,
     engine::world::World,
     get_delta_time,
     input::InputState,
     player::Player,
     process_input_events,
     render::{
-        PolygonMode, clear_color, polygon_mode,
+        PolygonMode, clear_color,
+        polygon_mode,
         renderer::{Renderer, Viewport},
         setup_2d_rendering, setup_3d_rendering,
     },
@@ -52,7 +53,6 @@ fn main() -> Result<()> {
     let resources = Resources::build()?;
     let mut player = Player::new(Vec3::new(-3.0, 2.0, -3.0));
 
-
     let ui_mesh = create_ui_mesh(&resources, &viewport);
     create_world_mesh(&mut world, &resources);
 
@@ -74,22 +74,15 @@ fn main() -> Result<()> {
             glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         }
 
-        let clicked = match process_input_events(&sdl, &mut player, &mut input_state) {
-            Some(data) => data,
-            None => break 'main_loop,
-        };
+        if process_input_events(&sdl, &mut player, &mut input_state) {
+            break 'main_loop;
+        }
 
-        update_player_and_world(
-            &mut state,
-            &mut world,
-            &mut player,
-            &resources,
-            &mut input_state,
-            delta_time,
-            clicked,
-        );
+        update_player_and_world(&mut state, &mut world, &mut player, &resources, &mut input_state, delta_time);
 
         render_world(&renderer, &world, &player, &viewport);
+
+        draw_axis(&player.camera, &viewport);
 
         setup_2d_rendering();
         render_ui(&renderer, &ui_mesh, &viewport);

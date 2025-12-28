@@ -1,21 +1,14 @@
+pub mod atlas;
 pub mod buffer;
 pub mod camera;
+pub mod debug_line;
 pub mod mesh;
+pub mod renderer;
 pub mod shader;
 pub mod texture;
 pub mod vertex;
-pub mod renderer;
-pub mod atlas;
 
-use bytemuck::cast_slice;
 use gl33::{global_loader::*, *};
-use glam::{IVec3, Mat4, Vec2, Vec3};
-
-use crate::render::{
-    buffer::buffer_data,
-    shader::{ShaderProgram, ShaderUniformType},
-    vertex::VertexTex,
-};
 
 /// The polygon display modes you can set.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

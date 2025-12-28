@@ -24,60 +24,59 @@ impl Voxel {
 
         // Define the 6 cube faces with their 4 corners in counter-clockwise order
         // Each face: [bottom_left, bottom_right, top_right, top_left]
+        // Voxel occupies [0, 1] in each dimension (standard grid coordinates)
         let faces = [
             // Back face (Z-)
             [
-                Vec3::new(-0.5, -0.5, -0.5),
-                Vec3::new(0.5, -0.5, -0.5),
-                Vec3::new(0.5, 0.5, -0.5),
-                Vec3::new(-0.5, 0.5, -0.5),
+                Vec3::new(0.0, 0.0, 0.0),
+                Vec3::new(1.0, 0.0, 0.0),
+                Vec3::new(1.0, 1.0, 0.0),
+                Vec3::new(0.0, 1.0, 0.0),
             ],
             // Front face (Z+)
             [
-                Vec3::new(-0.5, -0.5, 0.5),
-                Vec3::new(0.5, -0.5, 0.5),
-                Vec3::new(0.5, 0.5, 0.5),
-                Vec3::new(-0.5, 0.5, 0.5),
+                Vec3::new(0.0, 0.0, 1.0),
+                Vec3::new(1.0, 0.0, 1.0),
+                Vec3::new(1.0, 1.0, 1.0),
+                Vec3::new(0.0, 1.0, 1.0),
             ],
             // Left face (X-)
             [
-                Vec3::new(-0.5, 0.5, 0.5),
-                Vec3::new(-0.5, 0.5, -0.5),
-                Vec3::new(-0.5, -0.5, -0.5),
-                Vec3::new(-0.5, -0.5, 0.5),
+                Vec3::new(0.0, 1.0, 1.0),
+                Vec3::new(0.0, 1.0, 0.0),
+                Vec3::new(0.0, 0.0, 0.0),
+                Vec3::new(0.0, 0.0, 1.0),
             ],
             // Right face (X+)
             [
-                Vec3::new(0.5, 0.5, 0.5),
-                Vec3::new(0.5, 0.5, -0.5),
-                Vec3::new(0.5, -0.5, -0.5),
-                Vec3::new(0.5, -0.5, 0.5),
+                Vec3::new(1.0, 1.0, 1.0),
+                Vec3::new(1.0, 1.0, 0.0),
+                Vec3::new(1.0, 0.0, 0.0),
+                Vec3::new(1.0, 0.0, 1.0),
             ],
             // Bottom face (Y-)
             [
-                Vec3::new(-0.5, -0.5, -0.5),
-                Vec3::new(0.5, -0.5, -0.5),
-                Vec3::new(0.5, -0.5, 0.5),
-                Vec3::new(-0.5, -0.5, 0.5),
+                Vec3::new(0.0, 0.0, 0.0),
+                Vec3::new(1.0, 0.0, 0.0),
+                Vec3::new(1.0, 0.0, 1.0),
+                Vec3::new(0.0, 0.0, 1.0),
             ],
             // Top face (Y+)
             [
-                Vec3::new(-0.5, 0.5, -0.5),
-                Vec3::new(0.5, 0.5, -0.5),
-                Vec3::new(0.5, 0.5, 0.5),
-                Vec3::new(-0.5, 0.5, 0.5),
+                Vec3::new(0.0, 1.0, 0.0),
+                Vec3::new(1.0, 1.0, 0.0),
+                Vec3::new(1.0, 1.0, 1.0),
+                Vec3::new(0.0, 1.0, 1.0),
             ],
         ];
 
-
         // UV coordinates for each corner of a face
-        // let uvs = dbg!(texture_coordinates_from_block_id(resources, self.block_type).as_uv_corners());
-        let atlas_entry = resources
+        let uvs = resources
             .atlas
             .textures
             .get(self.block_type.as_str())
-            .unwrap_or_else(|| panic!("Block type: {} doesn't exist in atlas", self.block_type.as_str()));
-        let uvs = atlas_entry.to_uvs();
+            .unwrap_or_else(|| panic!("Block type: {} doesn't exist in atlas", self.block_type.as_str()))
+            .to_uvs();
 
         let mut vertices = [VertexTex::new(Vec3::ZERO, Vec2::ZERO); 36];
         let mut vertex_index = 0;

@@ -25,6 +25,8 @@ pub struct InputState {
     pub left: KeyState,
     pub right: KeyState,
     pub up: KeyState,
+    pub mb1: KeyState,
+    pub mb3: KeyState,
 }
 
 impl KeyState {
@@ -82,5 +84,20 @@ impl InputState {
             SDLK_SPACE => self.up = KeyState::from_pressed_last_and_curr(self.up.is_pressed, pressed),
             _ => {}
         }
+    }
+
+    pub fn set_mouse_button(&mut self, button: u8, pressed: bool) {
+        match button {
+            1 => self.mb1 = KeyState::from_pressed_last_and_curr(self.mb1.is_pressed, pressed),
+            3 => self.mb3 = KeyState::from_pressed_last_and_curr(self.mb3.is_pressed, pressed),
+            _ => {}
+        }
+    }
+
+    pub fn reset_mouse_buttons(&mut self) {
+        // TODO: possibly need to reset just_released as well?
+        // also not even sure why we need to reset these
+        self.mb1.just_pressed = false;
+        self.mb3.just_pressed = false;
     }
 }
