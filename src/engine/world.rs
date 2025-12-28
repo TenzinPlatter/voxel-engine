@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use glam::{IVec3, Mat4};
 
 use crate::{
-    Resources,
+    GameResources,
     engine::{block::BlockType, voxel::Voxel},
     physics::{PhysicsBody, colliding_with_aabb},
     render::mesh::Mesh,
@@ -17,7 +17,7 @@ pub struct World {
 
 impl World {
     /// Rebuilds the world's mesh from all voxels, optionally using a new texture.
-    pub fn rebuild_mesh(&mut self, resources: &Resources) {
+    pub fn rebuild_mesh(&mut self, resources: &GameResources) {
         // TODO: presize this to correct size
         let mut verticies = vec![];
 

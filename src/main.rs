@@ -2,20 +2,10 @@ use beryllium::*;
 
 use anyhow::Result;
 use gl33::{global_loader::*, *};
-use glam::Vec3;
 use voxel_engine::{
-    Resources, State, create_ui_mesh, create_world_mesh, draw_axis,
-    engine::world::World,
-    get_delta_time,
-    input::InputState,
-    player::Player,
-    process_input_events,
-    render::{
-        PolygonMode, clear_color, polygon_mode,
-        renderer::{Renderer, Viewport},
-        setup_2d_rendering, setup_3d_rendering,
-    },
-    render_ui, render_world, update_player_and_world,
+    create_ui_mesh, create_world_mesh, draw_axis, engine::game::{GameResources, GameState}, get_delta_time, input::InputState, render::{
+        clear_color, polygon_mode, renderer::{Renderer, Viewport}, setup_2d_rendering, setup_3d_rendering, PolygonMode
+    }, render_ui, render_world
 };
 
 const VERT_SHADER_3D: &str = include_str!("../shaders/3d/vertex.glsl");
@@ -46,21 +36,18 @@ fn main() -> Result<()> {
         glViewport(0, 0, drawable_width, drawable_height);
     }
 
-    let mut state = State::default();
-    let mut world = World::default();
+    let mut game = GameState::default();
+    let mut resources = GameResources::build()?;
     let renderer = Renderer::new((VERT_SHADER_3D, FRAG_SHADER_3D), (VERT_SHADER_2D, FRAG_SHADER_2D));
-    let resources = Resources::build()?;
-    let mut player = Player::new(Vec3::new(-3.0, 2.0, -3.0));
 
     let ui_mesh = create_ui_mesh(&resources, &viewport);
-    create_world_mesh(&mut world, &resources);
+    create_world_mesh(&mut game, &resources);
 
     clear_color(0.2, 0.3, 0.3, 1.0);
     polygon_mode(PolygonMode::Fill);
 
     // Delta time tracking
     let mut last_frame_time = sdl.get_ticks();
-    let mut input_state = InputState::default();
 
     'main_loop: loop {
         // Calculate delta time
@@ -73,15 +60,15 @@ fn main() -> Result<()> {
             glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         }
 
-        if process_input_events(&sdl, &mut player, &mut input_state, &mut state, &mut world, &resources) {
+        if game.process_input_events(&sdl, &mut resources) {
             break 'main_loop;
         }
 
-        update_player_and_world(&mut state, &mut world, &mut player, &mut input_state, delta_time);
+        game.update_player_and_world(delta_time);
 
-        render_world(&renderer, &world, &player, &viewport);
+        render_world(&mut game, &renderer, &viewport);
 
-        draw_axis(&player.camera, &viewport);
+        draw_axis(&game.player.camera, &viewport);
 
         setup_2d_rendering();
         render_ui(&renderer, &ui_mesh, &viewport);
