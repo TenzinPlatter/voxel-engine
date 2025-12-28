@@ -11,8 +11,7 @@ use voxel_engine::{
     player::Player,
     process_input_events,
     render::{
-        PolygonMode, clear_color,
-        polygon_mode,
+        PolygonMode, clear_color, polygon_mode,
         renderer::{Renderer, Viewport},
         setup_2d_rendering, setup_3d_rendering,
     },
@@ -74,11 +73,11 @@ fn main() -> Result<()> {
             glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         }
 
-        if process_input_events(&sdl, &mut player, &mut input_state) {
+        if process_input_events(&sdl, &mut player, &mut input_state, &mut state, &mut world, &resources) {
             break 'main_loop;
         }
 
-        update_player_and_world(&mut state, &mut world, &mut player, &resources, &mut input_state, delta_time);
+        update_player_and_world(&mut state, &mut world, &mut player, &mut input_state, delta_time);
 
         render_world(&renderer, &world, &player, &viewport);
 

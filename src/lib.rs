@@ -3,12 +3,9 @@ use beryllium::{video::GlWindow, *};
 use glam::{IVec3, Mat4, Vec2, Vec3};
 
 use crate::{
-    engine::{block::BlockType, world::World},
+    engine::{block::BlockType, voxel::Voxel, world::World},
     input::InputState,
-    physics::{
-        dda::get_looking_at_vox_pos,
-        hit_info::{self, HitInfo},
-    },
+    physics::{colliding_with_aabb, dda::get_looking_at_vox_pos, hit_info::HitInfo},
     player::{Player, PlayerState},
     render::{
         atlas::TextureAtlas,
@@ -37,6 +34,7 @@ pub struct State {
     pub last_player: Option<PlayerState>,
     pub current_player: Option<PlayerState>,
     pub looking_at_vox_pos: Option<IVec3>,
+    pub selected_block_type: BlockType,
 }
 
 pub struct Resources {
@@ -110,7 +108,14 @@ pub fn get_delta_time(sdl: &Sdl, last_frame_time: u32) -> f32 {
 
 /// Processes input events, updating the player and input state accordingly.
 /// Returns whether a quit event was received.
-pub fn process_input_events(sdl: &Sdl, player: &mut Player, input_state: &mut InputState) -> bool {
+pub fn process_input_events(
+    sdl: &Sdl,
+    player: &mut Player,
+    input_state: &mut InputState,
+    state: &mut State,
+    world: &mut World,
+    resources: &Resources,
+) -> bool {
     while let Some(event) = sdl.poll_events() {
         match event {
             (events::Event::Quit, _) => return true,
@@ -127,6 +132,22 @@ pub fn process_input_events(sdl: &Sdl, player: &mut Player, input_state: &mut In
         }
     }
 
+    state.selected_block_type = if input_state.number_key(1).just_pressed {
+        BlockType::Dirt
+    } else if input_state.number_key(2).just_pressed {
+        BlockType::Stone
+    } else {
+        state.selected_block_type
+    };
+
+    let hit_info = get_looking_at_vox_pos(world, player);
+    state.looking_at_vox_pos = hit_info.map(|hit| hit.pos);
+    if let Some(hit_info) = hit_info {
+        handle_mouse_presses(input_state, state, world, resources, &hit_info, player);
+    }
+
+    input_state.reset_mouse_buttons();
+
     false
 }
 
@@ -134,7 +155,6 @@ pub fn update_player_and_world(
     state: &mut State,
     world: &mut World,
     player: &mut Player,
-    resources: &Resources,
     input_state: &mut InputState,
     delta_time: f32,
 ) {
@@ -144,12 +164,6 @@ pub fn update_player_and_world(
         input_state,
         state.last_player.as_ref(),
     )));
-
-    let hit_info = get_looking_at_vox_pos(world, player);
-    state.looking_at_vox_pos = hit_info.map(|hit| hit.pos);
-    if let Some(hit_info) = hit_info {
-        handle_mouse_presses(input_state, state, world, resources, &hit_info);
-    }
 }
 
 pub fn handle_mouse_presses(
@@ -158,12 +172,12 @@ pub fn handle_mouse_presses(
     world: &mut World,
     resources: &Resources,
     hit_info: &HitInfo,
+    player: &Player,
 ) {
     let mut dirty = false;
 
     if input_state.mb3.just_pressed {
-        let to_place = hit_info.pos + hit_info.normal;
-        world.set_voxel(to_place);
+        try_place_block(world, hit_info, player, state);
         dirty = true;
     }
 
@@ -184,6 +198,21 @@ pub fn handle_mouse_presses(
     }
 
     input_state.reset_mouse_buttons();
+}
+
+pub fn try_place_block(world: &mut World, hit_info: &HitInfo, player: &Player, state: &State) -> bool {
+    let to_place = hit_info.pos + hit_info.normal;
+    if world.voxels.contains_key(&to_place) {
+        return false;
+    }
+
+    let vox = Voxel::new(to_place, state.selected_block_type);
+    if colliding_with_aabb(&vox.body, &player.body) {
+        return false;
+    }
+
+    world.voxels.insert(to_place, vox);
+    true
 }
 
 pub fn render_world(renderer: &Renderer, world: &World, player: &Player, viewport: &Viewport) {

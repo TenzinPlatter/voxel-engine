@@ -18,7 +18,7 @@ pub struct PlayerState {
 }
 
 pub struct Player {
-    body: PhysicsBody,
+    pub body: PhysicsBody,
 
     mouse_sensitivity: f32,
     /// multiplier for a normalized velocity vector, player speed

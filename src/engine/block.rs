@@ -5,9 +5,10 @@ use std::fmt::Display;
 
 
 #[repr(u8)]
-#[derive(Debug, Clone, Copy, TryFromPrimitive, Eq, PartialEq, Hash, Deserialize)]
+#[derive(Debug, Clone, Copy, TryFromPrimitive, Eq, PartialEq, Hash, Deserialize, Default)]
 #[serde(rename_all = "lowercase")]
 pub enum BlockType {
+    #[default]
     Dirt,
     Stone,
 }

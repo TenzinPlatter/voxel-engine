@@ -27,6 +27,7 @@ pub struct InputState {
     pub up: KeyState,
     pub mb1: KeyState,
     pub mb3: KeyState,
+    pub number_keys: [KeyState; 10],
 }
 
 impl KeyState {
@@ -82,6 +83,8 @@ impl InputState {
             SDLK_a => self.left = KeyState::from_pressed_last_and_curr(self.left.is_pressed, pressed),
             SDLK_d => self.right = KeyState::from_pressed_last_and_curr(self.right.is_pressed, pressed),
             SDLK_SPACE => self.up = KeyState::from_pressed_last_and_curr(self.up.is_pressed, pressed),
+            SDLK_1 => self.number_keys[0] = KeyState::from_pressed_last_and_curr(self.number_keys[0].is_pressed, pressed),
+            SDLK_2 => self.number_keys[1] = KeyState::from_pressed_last_and_curr(self.number_keys[1].is_pressed, pressed),
             _ => {}
         }
     }
@@ -94,10 +97,30 @@ impl InputState {
         }
     }
 
+    pub fn reset_keys(&mut self) {
+        self.forward.just_pressed = false;
+        self.back.just_pressed = false;
+        self.left.just_pressed = false;
+        self.right.just_pressed = false;
+        self.up.just_pressed = false;
+        for key_state in &mut self.number_keys {
+            key_state.just_pressed = false;
+        }
+    }
+
     pub fn reset_mouse_buttons(&mut self) {
         // TODO: possibly need to reset just_released as well?
         // also not even sure why we need to reset these
         self.mb1.just_pressed = false;
         self.mb3.just_pressed = false;
+    }
+
+    /// gets the state of a number key (0-9), where 1 maps to index 0, and 0 maps to index 9
+    pub fn number_key(&self, number: usize) -> &KeyState {
+        if number == 0 {
+            return &self.number_keys[9];
+        }
+
+        &self.number_keys[number - 1]
     }
 }
