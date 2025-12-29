@@ -1,5 +1,3 @@
-use std::collections::HashMap;
-
 use glam::{IVec3, Mat4};
 
 use crate::{
@@ -7,11 +5,12 @@ use crate::{
     engine::{block::BlockType, voxel::Voxel},
     physics::{PhysicsBody, colliding_with_aabb},
     render::mesh::Mesh,
+    utils::tracked_map::TrackedHashMap,
 };
 
 #[derive(Default)]
 pub struct World {
-    pub voxels: HashMap<IVec3, Voxel>,
+    pub voxels: TrackedHashMap<IVec3, Voxel>,
     pub mesh: Option<Mesh>,
 }
 

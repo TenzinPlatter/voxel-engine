@@ -1,13 +1,17 @@
 use anyhow::Result;
 use beryllium::{Sdl, events};
-use glam::{IVec3, Vec3};
+use glam::{IVec3, Vec2, Vec3};
 
 use crate::{
     engine::{block::BlockType, voxel::Voxel, world::World},
     input::InputState,
     physics::{colliding_with_aabb, dda::get_looking_at_vox_pos, hit_info::HitInfo},
     player::{Player, PlayerState},
-    render::atlas::TextureAtlas,
+    render::{
+        atlas::{TEXTURE_SIZE_PX, TextureAtlas},
+        vertex::Vertex2D,
+    },
+    utils::tracked::Tracked,
 };
 
 pub struct GameState {
@@ -26,7 +30,7 @@ pub struct State {
     pub last_player: Option<PlayerState>,
     pub current_player: Option<PlayerState>,
     pub looking_at_vox_pos: Option<IVec3>,
-    pub selected_block_type: BlockType,
+    pub selected_block_type: Tracked<BlockType>,
 }
 
 impl GameResources {
@@ -34,6 +38,19 @@ impl GameResources {
         Ok(Self {
             atlas: TextureAtlas::try_parse_atlas()?,
         })
+    }
+
+    pub fn get_verticies_for_block_face(&self, block_type: BlockType, center: Vec2) -> [Vertex2D; 6] {
+        let size = TEXTURE_SIZE_PX as f32;
+
+        let uvs = self
+            .atlas
+            .textures
+            .get(block_type.as_str())
+            .unwrap_or_else(|| panic!("No texture for block type: {}", block_type.as_str()))
+            .to_uvs();
+
+        verticies_from_center_and_size(center, size, uvs)
     }
 }
 
@@ -51,7 +68,7 @@ impl Default for GameState {
 impl GameState {
     /// Processes input events, updating the player and input state accordingly.
     /// Returns whether a quit event was received.
-    pub fn process_input_events(&mut self, sdl: &Sdl, resources: &mut GameResources) -> bool {
+    pub fn process_input_events(&mut self, sdl: &Sdl) -> bool {
         while let Some(event) = sdl.poll_events() {
             match event {
                 (events::Event::Quit, _) => return true,
@@ -68,18 +85,16 @@ impl GameState {
             }
         }
 
-        self.state.selected_block_type = if self.input_state.number_key(1).just_pressed {
-            BlockType::Dirt
+        if self.input_state.number_key(1).just_pressed {
+            self.state.selected_block_type.set(BlockType::Dirt);
         } else if self.input_state.number_key(2).just_pressed {
-            BlockType::Stone
-        } else {
-            self.state.selected_block_type
-        };
+            self.state.selected_block_type.set(BlockType::Stone);
+        }
 
         let hit_info = get_looking_at_vox_pos(&self.world, &self.player);
         self.state.looking_at_vox_pos = hit_info.map(|hit| hit.pos);
         if let Some(hit_info) = hit_info {
-            self.handle_mouse_presses(resources, &hit_info);
+            self.handle_mouse_presses(&hit_info);
         }
 
         self.input_state.reset_mouse_buttons();
@@ -88,50 +103,38 @@ impl GameState {
     }
 
     pub fn update_player_and_world(&mut self, delta_time: f32) {
-        let Self { state, world, player, input_state } = self;
-
-        state.last_player = Some(PlayerState::new(player.step(
-            world,
+        self.state.last_player = Some(PlayerState::new(self.player.step(
+            &self.world,
             delta_time,
-            input_state,
-            state.last_player.as_ref(),
+            &mut self.input_state,
+            self.state.last_player.as_ref(),
         )));
     }
 
-    pub fn handle_mouse_presses(&mut self, resources: &mut GameResources, hit_info: &HitInfo) {
-        let mut dirty = false;
-
+    pub fn handle_mouse_presses(&mut self, hit_info: &HitInfo) {
         if self.input_state.mb3.just_pressed {
             self.try_place_block(hit_info);
-            dirty = true;
         }
 
-        if let Some(voxpos) = self.state.looking_at_vox_pos
-            && let Some(vox) = self.world.voxels.get_mut(&voxpos)
-            && self.input_state.mb1.just_pressed
-        {
-            vox.block_type = match vox.block_type {
-                BlockType::Dirt => BlockType::Stone,
-                BlockType::Stone => BlockType::Dirt,
-            };
-
-            dirty = true;
-        }
-
-        if dirty {
-            self.world.rebuild_mesh(resources);
+        if self.input_state.mb1.just_pressed {
+            self.try_remove_block(hit_info);
         }
 
         self.input_state.reset_mouse_buttons();
     }
 
-    pub fn try_place_block(&mut self, hit_info: &HitInfo) -> bool {
+    fn try_remove_block(&mut self, hit_info: &HitInfo) {
+        let to_remove = hit_info.pos;
+        self.world.voxels.remove(&to_remove);
+    }
+
+    fn try_place_block(&mut self, hit_info: &HitInfo) -> bool {
         let to_place = hit_info.pos + hit_info.normal;
         if self.world.voxels.contains_key(&to_place) {
             return false;
         }
 
-        let vox = Voxel::new(to_place, self.state.selected_block_type);
+        let vox = Voxel::new(to_place, *self.state.selected_block_type.get());
         if colliding_with_aabb(&vox.body, &self.player.body) {
             return false;
         }
@@ -139,4 +142,34 @@ impl GameState {
         self.world.voxels.insert(to_place, vox);
         true
     }
+}
+
+pub fn verticies_from_center_and_size(center: Vec2, size: f32, uvs: [Vec2; 4]) -> [Vertex2D; 6] {
+    let half_size = size / 2.0;
+    [
+        Vertex2D {
+            position: Vec2::new(center.x - half_size, center.y - half_size),
+            tex: uvs[0],
+        },
+        Vertex2D {
+            position: Vec2::new(center.x + half_size, center.y - half_size),
+            tex: uvs[1],
+        },
+        Vertex2D {
+            position: Vec2::new(center.x + half_size, center.y + half_size),
+            tex: uvs[2],
+        },
+        Vertex2D {
+            position: Vec2::new(center.x + half_size, center.y + half_size),
+            tex: uvs[2],
+        },
+        Vertex2D {
+            position: Vec2::new(center.x - half_size, center.y + half_size),
+            tex: uvs[3],
+        },
+        Vertex2D {
+            position: Vec2::new(center.x - half_size, center.y - half_size),
+            tex: uvs[0],
+        },
+    ]
 }

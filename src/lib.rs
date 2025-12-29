@@ -3,12 +3,17 @@ use beryllium::{video::GlWindow, *};
 use glam::{IVec3, Mat4, Vec2, Vec3};
 
 use crate::{
-    engine::{block::BlockType, game::{GameResources, GameState}, voxel::Voxel, world::World},
+    engine::{
+        block::BlockType,
+        game::{GameResources, GameState, verticies_from_center_and_size},
+        voxel::Voxel,
+        world::World,
+    },
     input::InputState,
     physics::{colliding_with_aabb, dda::get_looking_at_vox_pos, hit_info::HitInfo},
     player::{Player, PlayerState},
     render::{
-        atlas::TextureAtlas,
+        atlas::{TEXTURE_SIZE_PX, TextureAtlas},
         camera::Camera,
         debug_line::draw_debug_line,
         mesh::Mesh,
@@ -22,6 +27,7 @@ pub mod input;
 pub mod physics;
 pub mod player;
 pub mod render;
+pub mod utils;
 
 const WIDTH: i32 = 1600;
 const HEIGHT: i32 = 900;
@@ -66,7 +72,7 @@ pub fn radians_to_degrees(radians: f32) -> f32 {
 }
 
 /// Creates a flat ground mesh in the world from -32 to 32 on x and z axes.
-pub fn create_world_mesh(game: &mut GameState, resources: &GameResources) {
+pub fn create_world_mesh(game: &mut GameState) {
     for z in -32..32 {
         for x in -32..32 {
             game.world.set_voxel(IVec3::new(x, 0, z));
@@ -74,8 +80,6 @@ pub fn create_world_mesh(game: &mut GameState, resources: &GameResources) {
     }
 
     game.world.set_voxel(IVec3::new(0, 1, 0));
-
-    game.world.rebuild_mesh(resources);
 }
 
 /// Returns the delta time since the last frame in seconds.
@@ -94,44 +98,9 @@ pub fn render_world(game: &mut GameState, renderer: &Renderer, viewport: &Viewpo
     );
 }
 
-pub fn create_ui_mesh(resources: &GameResources, viewport: &Viewport) -> Mesh {
-    let crosshair_size = 16.0;
-    let half_size = crosshair_size / 2.0;
-    let center = Vec2::new(viewport.width as f32 / 2.0, viewport.height as f32 / 2.0);
-
-    let uvs = resources
-        .atlas
-        .textures
-        .get("crosshair")
-        .expect("Crosshair texture missing from atlas")
-        .to_uvs();
-
-    let vertices = vec![
-        Vertex2D {
-            position: Vec2::new(center.x - half_size, center.y - half_size),
-            tex: uvs[0],
-        },
-        Vertex2D {
-            position: Vec2::new(center.x + half_size, center.y - half_size),
-            tex: uvs[1],
-        },
-        Vertex2D {
-            position: Vec2::new(center.x + half_size, center.y + half_size),
-            tex: uvs[2],
-        },
-        Vertex2D {
-            position: Vec2::new(center.x + half_size, center.y + half_size),
-            tex: uvs[2],
-        },
-        Vertex2D {
-            position: Vec2::new(center.x - half_size, center.y + half_size),
-            tex: uvs[3],
-        },
-        Vertex2D {
-            position: Vec2::new(center.x - half_size, center.y - half_size),
-            tex: uvs[0],
-        },
-    ];
+pub fn create_ui_mesh(game: &GameState, resources: &GameResources, viewport: &Viewport) -> Mesh {
+    let mut vertices: Vec<Vertex2D> = get_crosshair_verticies(resources, viewport).to_vec();
+    vertices.extend(resources.get_verticies_for_block_face(*game.state.selected_block_type.get(), Vec2::new(100., 100.)));
 
     Mesh::new(&vertices, Mat4::IDENTITY, resources.atlas.texture)
 }
@@ -171,4 +140,18 @@ pub fn draw_axis(camera: &Camera, viewport: &Viewport) {
         camera,
         viewport,
     );
+}
+
+fn get_crosshair_verticies(resources: &GameResources, viewport: &Viewport) -> [Vertex2D; 6] {
+    let crosshair_size = 16.0;
+    let center = Vec2::new(viewport.width as f32 / 2.0, viewport.height as f32 / 2.0);
+
+    let uvs = resources
+        .atlas
+        .textures
+        .get("crosshair")
+        .expect("Crosshair texture missing from atlas")
+        .to_uvs();
+
+    verticies_from_center_and_size(center, crosshair_size, uvs)
 }

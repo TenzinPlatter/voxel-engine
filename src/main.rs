@@ -37,11 +37,11 @@ fn main() -> Result<()> {
     }
 
     let mut game = GameState::default();
-    let mut resources = GameResources::build()?;
+    let resources = GameResources::build()?;
     let renderer = Renderer::new((VERT_SHADER_3D, FRAG_SHADER_3D), (VERT_SHADER_2D, FRAG_SHADER_2D));
 
-    let ui_mesh = create_ui_mesh(&resources, &viewport);
-    create_world_mesh(&mut game, &resources);
+    let mut ui_mesh = create_ui_mesh(&game, &resources, &viewport);
+    create_world_mesh(&mut game);
 
     clear_color(0.2, 0.3, 0.3, 1.0);
     polygon_mode(PolygonMode::Fill);
@@ -60,17 +60,26 @@ fn main() -> Result<()> {
             glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         }
 
-        if game.process_input_events(&sdl, &mut resources) {
+        if game.process_input_events(&sdl) {
             break 'main_loop;
         }
 
         game.update_player_and_world(delta_time);
+
+        if game.world.voxels.take_dirty() {
+            game.world.rebuild_mesh(&resources);
+        }
 
         render_world(&mut game, &renderer, &viewport);
 
         draw_axis(&game.player.camera, &viewport);
 
         setup_2d_rendering();
+
+        if game.state.selected_block_type.take_dirty().is_some() {
+            ui_mesh = create_ui_mesh(&game, &resources, &viewport);
+        }
+
         render_ui(&renderer, &ui_mesh, &viewport);
 
         win.swap_window();
