@@ -3,9 +3,16 @@ use beryllium::*;
 use anyhow::Result;
 use gl33::{global_loader::*, *};
 use voxel_engine::{
-    create_ui_mesh, create_world_mesh, draw_axis, engine::game::{GameResources, GameState}, get_delta_time, input::InputState, render::{
-        clear_color, polygon_mode, renderer::{Renderer, Viewport}, setup_2d_rendering, setup_3d_rendering, PolygonMode
-    }, render_ui, render_world
+    draw_axis,
+    engine::game::{GameResources, GameState},
+    get_delta_time,
+    render::{
+        PolygonMode, clear_color, polygon_mode,
+        renderer::{Renderer, Viewport},
+        setup_3d_rendering,
+        ui::UIRenderer,
+    },
+    render_world,
 };
 
 const VERT_SHADER_3D: &str = include_str!("../shaders/3d/vertex.glsl");
@@ -38,10 +45,11 @@ fn main() -> Result<()> {
 
     let mut game = GameState::default();
     let resources = GameResources::build()?;
-    let renderer = Renderer::new((VERT_SHADER_3D, FRAG_SHADER_3D), (VERT_SHADER_2D, FRAG_SHADER_2D));
-
-    let mut ui_mesh = create_ui_mesh(&game, &resources, &viewport);
-    create_world_mesh(&mut game);
+    let renderer = Renderer::new(
+        (VERT_SHADER_3D, FRAG_SHADER_3D),
+        (VERT_SHADER_2D, FRAG_SHADER_2D),
+    );
+    let mut ui_renderer = UIRenderer::new(&game, &resources, &viewport);
 
     clear_color(0.2, 0.3, 0.3, 1.0);
     polygon_mode(PolygonMode::Fill);
@@ -74,13 +82,7 @@ fn main() -> Result<()> {
 
         draw_axis(&game.player.camera, &viewport);
 
-        setup_2d_rendering();
-
-        if game.state.selected_block_type.take_dirty().is_some() {
-            ui_mesh = create_ui_mesh(&game, &resources, &viewport);
-        }
-
-        render_ui(&renderer, &ui_mesh, &viewport);
+        ui_renderer.render(&game, &resources, &renderer, &viewport);
 
         win.swap_window();
     }

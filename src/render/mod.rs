@@ -7,6 +7,7 @@ pub mod renderer;
 pub mod shader;
 pub mod texture;
 pub mod vertex;
+pub mod ui;
 
 use gl33::{global_loader::*, *};
 

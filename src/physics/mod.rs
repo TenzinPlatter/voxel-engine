@@ -1,8 +1,10 @@
 use glam::Vec3;
 
+use crate::engine::voxel::Voxel;
+
 pub mod dda;
-pub mod hit_info;
 pub mod dda_other;
+pub mod hit_info;
 
 pub const PHYSICS_DT: f32 = 1. / 120.;
 pub const GRAVITY: f32 = -9.81;
@@ -27,10 +29,15 @@ impl PhysicsBody {
     }
 }
 
+pub fn colliding_with_voxel_from_pos(p: &PhysicsBody, vox: Vec3) -> bool {
+    let vox_body = PhysicsBody::new(vox, Vec3::ONE);
+    colliding_with(p, &vox_body)
+}
+
 /// Checks whether two physics bodies are colliding using AABB collision detection.
 /// TODO: when using this do a binary search from start time to end time to see how far the object
 /// can be moved before colliding, ~5 steps is probably good
-pub fn colliding_with_aabb(a: &PhysicsBody, b: &PhysicsBody) -> bool {
+pub fn colliding_with(a: &PhysicsBody, b: &PhysicsBody) -> bool {
     a.position.x < b.position.x + b.size.x
         && a.position.x + a.size.x > b.position.x
         && a.position.y < b.position.y + b.size.y

@@ -1,37 +1,42 @@
+use std::cell::{Cell, Ref, RefCell};
+
 #[derive(Default)]
 pub struct Tracked<T> {
-    value: T,
-    dirty: bool,
+    value: RefCell<T>,
+    dirty: Cell<bool>,
 }
 
 impl<T> Tracked<T> {
     pub fn new(value: T) -> Self {
-        Self { value, dirty: true }  // start dirty so initial state triggers
+        Self {
+            value: RefCell::new(value),
+            dirty: Cell::new(true),
+        } // start dirty so initial state triggers
     }
 
-    pub fn set(&mut self, value: T) {
-        self.value = value;
-        self.dirty = true;
+    pub fn set(&self, value: T) {
+        self.value.replace(value);
+        self.dirty.set(true);
     }
 
     /// Only marks dirty if value actually changed
-    pub fn set_if_changed(&mut self, value: T)
+    pub fn set_if_changed(&self, value: T)
     where
         T: PartialEq,
     {
-        if self.value != value {
-            self.value = value;
-            self.dirty = true;
+        if *self.value.borrow() != value {
+            self.value.replace(value);
+            self.dirty.set(true);
         }
     }
 
-    pub fn get(&self) -> &T {
-        &self.value
+    pub fn get(&'_ self) -> Ref<'_, T> {
+        self.value.borrow()
     }
 
-    pub fn take_dirty(&mut self) -> Option<&T> {
-        if std::mem::take(&mut self.dirty) {
-            Some(&self.value)
+    pub fn take_dirty(&'_ self) -> Option<Ref<'_, T>> {
+        if self.dirty.replace(false) {
+            Some(self.value.borrow())
         } else {
             None
         }

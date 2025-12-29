@@ -1,19 +1,9 @@
-use anyhow::Result;
 use beryllium::{video::GlWindow, *};
 use glam::{IVec3, Mat4, Vec2, Vec3};
 
 use crate::{
-    engine::{
-        block::BlockType,
-        game::{GameResources, GameState, verticies_from_center_and_size},
-        voxel::Voxel,
-        world::World,
-    },
-    input::InputState,
-    physics::{colliding_with_aabb, dda::get_looking_at_vox_pos, hit_info::HitInfo},
-    player::{Player, PlayerState},
+    engine::game::{GameResources, GameState, verticies_from_center_and_size},
     render::{
-        atlas::{TEXTURE_SIZE_PX, TextureAtlas},
         camera::Camera,
         debug_line::draw_debug_line,
         mesh::Mesh,
@@ -71,17 +61,6 @@ pub fn radians_to_degrees(radians: f32) -> f32 {
     radians * 180.0 / std::f32::consts::PI
 }
 
-/// Creates a flat ground mesh in the world from -32 to 32 on x and z axes.
-pub fn create_world_mesh(game: &mut GameState) {
-    for z in -32..32 {
-        for x in -32..32 {
-            game.world.set_voxel(IVec3::new(x, 0, z));
-        }
-    }
-
-    game.world.set_voxel(IVec3::new(0, 1, 0));
-}
-
 /// Returns the delta time since the last frame in seconds.
 pub fn get_delta_time(sdl: &Sdl, last_frame_time: u32) -> f32 {
     let current_frame_time = sdl.get_ticks();
@@ -96,17 +75,6 @@ pub fn render_world(game: &mut GameState, renderer: &Renderer, viewport: &Viewpo
         &game.player.camera,
         viewport,
     );
-}
-
-pub fn create_ui_mesh(game: &GameState, resources: &GameResources, viewport: &Viewport) -> Mesh {
-    let mut vertices: Vec<Vertex2D> = get_crosshair_verticies(resources, viewport).to_vec();
-    vertices.extend(resources.get_verticies_for_block_face(*game.state.selected_block_type.get(), Vec2::new(100., 100.)));
-
-    Mesh::new(&vertices, Mat4::IDENTITY, resources.atlas.texture)
-}
-
-pub fn render_ui(renderer: &Renderer, mesh: &Mesh, viewport: &Viewport) {
-    renderer.render_mesh_2d(mesh, viewport);
 }
 
 pub fn draw_axis(camera: &Camera, viewport: &Viewport) {

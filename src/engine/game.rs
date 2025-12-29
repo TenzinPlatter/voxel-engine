@@ -1,3 +1,5 @@
+use std::rc::Rc;
+
 use anyhow::Result;
 use beryllium::{Sdl, events};
 use glam::{IVec3, Vec2, Vec3};
@@ -5,7 +7,10 @@ use glam::{IVec3, Vec2, Vec3};
 use crate::{
     engine::{block::BlockType, voxel::Voxel, world::World},
     input::InputState,
-    physics::{colliding_with_aabb, dda::get_looking_at_vox_pos, hit_info::HitInfo},
+    physics::{
+        colliding_with, colliding_with_voxel_from_pos, dda::get_looking_at_vox_pos,
+        hit_info::HitInfo,
+    },
     player::{Player, PlayerState},
     render::{
         atlas::{TEXTURE_SIZE_PX, TextureAtlas},
@@ -30,7 +35,7 @@ pub struct State {
     pub last_player: Option<PlayerState>,
     pub current_player: Option<PlayerState>,
     pub looking_at_vox_pos: Option<IVec3>,
-    pub selected_block_type: Tracked<BlockType>,
+    pub selected_block_type: Rc<Tracked<BlockType>>,
 }
 
 impl GameResources {
@@ -40,7 +45,11 @@ impl GameResources {
         })
     }
 
-    pub fn get_verticies_for_block_face(&self, block_type: BlockType, center: Vec2) -> [Vertex2D; 6] {
+    pub fn get_verticies_for_block_face(
+        &self,
+        block_type: BlockType,
+        center: Vec2,
+    ) -> [Vertex2D; 6] {
         let size = TEXTURE_SIZE_PX as f32;
 
         let uvs = self
@@ -72,13 +81,28 @@ impl GameState {
         while let Some(event) = sdl.poll_events() {
             match event {
                 (events::Event::Quit, _) => return true,
-                (events::Event::Key { keycode, pressed, .. }, _) => {
+                (
+                    events::Event::Key {
+                        keycode, pressed, ..
+                    },
+                    _,
+                ) => {
                     self.input_state.set_key(keycode, pressed);
                 }
-                (events::Event::MouseMotion { x_delta, y_delta, .. }, _) => {
+                (
+                    events::Event::MouseMotion {
+                        x_delta, y_delta, ..
+                    },
+                    _,
+                ) => {
                     self.player.process_mouse(x_delta as f32, -y_delta as f32);
                 }
-                (events::Event::MouseButton { button, pressed, .. }, _) => {
+                (
+                    events::Event::MouseButton {
+                        button, pressed, ..
+                    },
+                    _,
+                ) => {
                     self.input_state.set_mouse_button(button, pressed);
                 }
                 _ => {}
@@ -130,16 +154,14 @@ impl GameState {
 
     fn try_place_block(&mut self, hit_info: &HitInfo) -> bool {
         let to_place = hit_info.pos + hit_info.normal;
-        if self.world.voxels.contains_key(&to_place) {
+        if self.world.voxels.contains_key(&to_place)
+            || colliding_with_voxel_from_pos(&self.player.body, to_place.as_vec3())
+        {
             return false;
         }
 
-        let vox = Voxel::new(to_place, *self.state.selected_block_type.get());
-        if colliding_with_aabb(&vox.body, &self.player.body) {
-            return false;
-        }
-
-        self.world.voxels.insert(to_place, vox);
+        self.world
+            .set_voxel(to_place, *self.state.selected_block_type.get());
         true
     }
 }
