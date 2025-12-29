@@ -1,4 +1,4 @@
-use gl33::{global_loader::*, GL_ARRAY_BUFFER, GL_DEPTH_TEST, GL_DYNAMIC_DRAW, GL_FALSE, GL_FLOAT, GL_LINES};
+use gl33::{global_loader::*, GL_ARRAY_BUFFER, GL_DYNAMIC_DRAW, GL_FALSE, GL_FLOAT, GL_LINES};
 use glam::{Mat4, Vec3};
 use std::mem::size_of;
 use std::sync::LazyLock;

@@ -1,6 +1,6 @@
 use bytemuck::{Pod, cast_slice};
 use gl33::{GL_STATIC_DRAW, GL_TRIANGLES, global_loader::*};
-use glam::{Mat4, Vec3};
+use glam::Mat4;
 
 use crate::render::{
     buffer::{Buffer, BufferType, VertexArray, buffer_data},

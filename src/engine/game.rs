@@ -5,10 +5,10 @@ use beryllium::{Sdl, events};
 use glam::{IVec3, Vec2, Vec3};
 
 use crate::{
-    engine::{block::BlockType, voxel::Voxel, world::World},
+    engine::{block::BlockType, world::World},
     input::InputState,
     physics::{
-        colliding_with, colliding_with_voxel_from_pos, dda::get_looking_at_vox_pos,
+        colliding_with_voxel_from_pos, dda::get_looking_at_vox_pos,
         hit_info::HitInfo,
     },
     player::{Player, PlayerState},

@@ -1,12 +1,11 @@
 use beryllium::{video::GlWindow, *};
-use glam::{IVec3, Mat4, Vec2, Vec3};
+use glam::{Vec2, Vec3};
 
 use crate::{
     engine::game::{GameResources, GameState, verticies_from_center_and_size},
     render::{
         camera::Camera,
         debug_line::draw_debug_line,
-        mesh::Mesh,
         renderer::{Renderer, Viewport},
         vertex::Vertex2D,
     },
