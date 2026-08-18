@@ -19,7 +19,7 @@ impl Voxel {
 
     /// Returns the 36 vertices that make up this voxel's cube geometry.
     /// Generates 6 faces (2 triangles each = 6 vertices per face).
-    pub fn get_verticies(&self, resources: &GameResources) -> [VertexTex; 36] {
+    pub fn get_vertices(&self, resources: &GameResources) -> [VertexTex; 36] {
         let pos = self.body.position;
 
         // Define the 6 cube faces with their 4 corners in counter-clockwise order

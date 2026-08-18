@@ -17,15 +17,15 @@ impl World {
     /// Rebuilds the world's mesh from all voxels, optionally using a new texture.
     pub fn rebuild_mesh(&mut self, resources: &GameResources) {
         // TODO: presize this to correct size
-        let mut verticies = vec![];
+        let mut vertcies = vec![];
 
         // voxels positions are top x, z corner
         for vox in self.voxels.values() {
-            verticies.extend(vox.get_verticies(resources));
+            vertcies.extend(vox.get_vertices(resources));
         }
 
         self.mesh = Some(Mesh::new(
-            &verticies,
+            &vertcies,
             Mat4::IDENTITY,
             resources.atlas.texture,
         ));
