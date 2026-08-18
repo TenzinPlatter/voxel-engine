@@ -67,7 +67,7 @@ impl Default for GameState {
     fn default() -> Self {
         Self {
             state: State::default(),
-            world: World::default(),
+            world: World::from_noise(),
             player: Player::new(Vec3::new(-3.0, 2.0, -3.0)),
             input_state: InputState::default(),
         }

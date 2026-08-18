@@ -5,6 +5,16 @@ pub struct TrackedHashMap<K, V> {
     dirty: bool,
 }
 
+impl<K: Eq + Hash, V> FromIterator<(K, V)> for TrackedHashMap<K, V> {
+    fn from_iter<T: IntoIterator<Item = (K, V)>>(iter: T) -> Self {
+        let inner = iter.into_iter().collect();
+        Self {
+            inner,
+            dirty: true,
+        }
+    }
+}
+
 impl<K: Eq + Hash, V> TrackedHashMap<K, V> {
     pub fn new() -> Self {
         Self {

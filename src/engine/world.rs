@@ -1,4 +1,7 @@
+use std::time::SystemTime;
+
 use glam::{IVec3, Mat4};
+use noise::{NoiseFn, Perlin};
 
 use crate::{
     GameResources,
@@ -45,25 +48,56 @@ impl World {
     pub fn is_colliding(&self, other: &PhysicsBody) -> bool {
         // TODO: extrusion or something so we cant phase through voxels when moving quickly
         // TODO: optimize to not check every square
-        self.voxels
-            .values()
-            .any(|v| colliding_with(&v.body, other))
+        self.voxels.values().any(|v| colliding_with(&v.body, other))
+    }
+
+    pub fn from_noise() -> World {
+        let perlin = Perlin::new(1);
+        let scale = 0.05;
+
+        let voxels = (-32..32)
+            .map(|z| {
+                (-32..32)
+                    .map(move |x| {
+                        let noise = perlin.get([x as f64 * scale, z as f64 * scale]);
+                        let y = (noise * 10.0) as i32;
+                        let stone_start = y - 3;
+                        (-10..y).map(move |y| {
+                            let pos = IVec3::new(x, y, z);
+                            (pos.clone(), Voxel::new(pos, if y < stone_start {
+                                BlockType::Stone
+                            } else {
+                                BlockType::Dirt
+                            }))
+                        })
+                    })
+                    .flatten()
+            })
+            .flatten()
+            .collect();
+
+        World {
+            voxels,
+            mesh: Default::default(),
+        }
     }
 }
 
 impl Default for World {
     fn default() -> Self {
-        let mut res = Self {
-            voxels: Default::default(),
-            mesh: Default::default(),
-        };
+        let voxels = (-32..32)
+            .map(|z| {
+                (-32..32).map(move |x| {
+                    let pos = IVec3::new(x, 0, z);
+                    (pos.clone(), Voxel::new(pos, BlockType::Dirt))
+                })
+            })
+            .flatten()
+            .collect();
 
-        for z in -32..32 {
-            for x in -32..32 {
-                res.set_voxel(IVec3::new(x, 0, z), BlockType::Dirt);
-            }
+        World {
+            voxels,
+            mesh: Default::default(),
         }
-        res.set_voxel(IVec3::new(0, 1, 0), BlockType::Dirt);
-        res
     }
 }
