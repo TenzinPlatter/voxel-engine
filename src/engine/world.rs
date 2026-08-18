@@ -3,7 +3,7 @@ use glam::{IVec3, Mat4};
 use crate::{
     GameResources,
     engine::{block::BlockType, voxel::Voxel},
-    physics::{PhysicsBody, colliding_with},
+    physics::{PhysicsBody, colliding_with, hit_info::HitInfo},
     render::mesh::Mesh,
     utils::tracked_map::TrackedHashMap,
 };
@@ -42,12 +42,26 @@ impl World {
     }
 
     /// Checks if the given physics body is colliding with any voxel in the world.
-    pub fn is_colliding(&self, other: &PhysicsBody) -> bool {
-        // TODO: extrusion or something so we cant phase through voxels when moving quickly
+    pub fn is_colliding(&self, other: &PhysicsBody) -> Option<HitInfo> {
         // TODO: optimize to not check every square
-        self.voxels
+        let collisions = self
+            .voxels
             .values()
-            .any(|v| colliding_with(&v.body, other))
+            .filter(|v| colliding_with(&v.body, other));
+
+        let closest = collisions.min_by(|a, b| {
+            let da = a.body.position.distance_squared(other.position);
+            let db = b.body.position.distance_squared(other.position);
+            da.partial_cmp(&db).unwrap()
+        });
+
+        if let Some(closest) = closest
+        {
+            let face = other.get_collision_face(&closest.body);
+            Some(HitInfo::new(closest.body.position.as_ivec3(), face))
+        } else {
+            None
+        }
     }
 }
 

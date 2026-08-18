@@ -3,14 +3,12 @@ use std::rc::Rc;
 use anyhow::Result;
 use beryllium::{Sdl, events};
 use glam::{IVec3, Vec2, Vec3};
+use uom::si::f32::Time;
 
 use crate::{
     engine::{block::BlockType, world::World},
     input::InputState,
-    physics::{
-        colliding_with_voxel_from_pos, dda::get_looking_at_vox_pos,
-        hit_info::HitInfo,
-    },
+    physics::{colliding_with_voxel_from_pos, dda::get_looking_at_vox_pos, hit_info::HitInfo},
     player::{Player, PlayerState},
     render::{
         atlas::{TEXTURE_SIZE_PX, TextureAtlas},
@@ -126,7 +124,7 @@ impl GameState {
         false
     }
 
-    pub fn update_player_and_world(&mut self, delta_time: f32) {
+    pub fn update_player_and_world(&mut self, delta_time: Time) {
         self.state.last_player = Some(PlayerState::new(self.player.step(
             &self.world,
             delta_time,

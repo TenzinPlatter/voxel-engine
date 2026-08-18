@@ -17,16 +17,18 @@ use crate::{
     utils::tracked::Tracked,
 };
 
-pub struct UIRenderer {
+pub struct UIRenderer<'a> {
     mesh: Mesh,
     selected_block_type: Rc<Tracked<BlockType>>,
+    renderer: &'a Renderer,
 }
 
-impl UIRenderer {
-    pub fn new(game: &GameState, resources: &GameResources, viewport: &Viewport) -> Self {
+impl<'a> UIRenderer<'a> {
+    pub fn new(game: &GameState, resources: &GameResources, viewport: &Viewport, renderer: &'a Renderer) -> Self {
         Self {
             mesh: Self::build_mesh(game, resources, viewport),
             selected_block_type: game.state.selected_block_type.clone(),
+            renderer,
         }
     }
 
@@ -62,11 +64,10 @@ impl UIRenderer {
         &mut self,
         game: &GameState,
         resources: &GameResources,
-        renderer: &Renderer,
         viewport: &Viewport,
     ) {
         setup_2d_rendering();
         self.rebuild_mesh_if_dirty(game, resources, viewport);
-        renderer.render_mesh_2d(&self.mesh, viewport);
+        self.renderer.render_mesh_2d(&self.mesh, viewport);
     }
 }

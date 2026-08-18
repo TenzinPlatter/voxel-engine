@@ -1,19 +1,27 @@
-use glam::Vec3;
+use std::sync::LazyLock;
 
+use glam::Vec3;
+use uom::si::{
+    f32::{Acceleration, Time},
+    time,
+};
+
+use crate::physics::hit_info::HitFace;
 
 pub mod dda;
 pub mod dda_other;
 pub mod hit_info;
 
-pub const PHYSICS_DT: f32 = 1. / 120.;
-pub const GRAVITY: f32 = -9.81;
+pub static PHYSICS_DT: LazyLock<Time> = LazyLock::new(|| Time::new::<time::second>(1.0 / 60.0));
+pub static GRAVITY: LazyLock<Acceleration> =
+    LazyLock::new(|| Acceleration::new::<uom::si::acceleration::meter_per_second_squared>(-9.81));
 
 #[derive(Clone, Debug)]
 pub struct PhysicsBody {
     pub position: Vec3,
     pub velocity: Vec3,
     pub size: Vec3,
-    pub accumulator: f32,
+    pub accumulator: Time,
 }
 
 impl PhysicsBody {
@@ -23,7 +31,77 @@ impl PhysicsBody {
             position,
             velocity: Vec3::ZERO,
             size,
-            accumulator: 0.,
+            accumulator: Time::new::<time::second>(0.0),
+        }
+    }
+
+    /// Determines which face of this physics body is colliding with another.
+    /// NOTE: This function assumes that a collision is already occurring.
+    pub fn get_collision_face(&self, other: &PhysicsBody) -> HitFace {
+        let dx_min = (other.position.x + other.size.x) - self.position.x;
+        let dx_max = (self.position.x + self.size.x) - other.position.x;
+        let dy_min = (other.position.y + other.size.y) - self.position.y;
+        let dy_max = (self.position.y + self.size.y) - other.position.y;
+        let dz_min = (other.position.z + other.size.z) - self.position.z;
+        let dz_max = (self.position.z + self.size.z) - other.position.z;
+
+        let min_overlap = dx_min
+            .min(dx_max)
+            .min(dy_min)
+            .min(dy_max)
+            .min(dz_min)
+            .min(dz_max);
+
+        if min_overlap == dx_min {
+            HitFace::NegX
+        } else if min_overlap == dx_max {
+            HitFace::PosX
+        } else if min_overlap == dy_min {
+            HitFace::PosY
+        } else if min_overlap == dy_max {
+            HitFace::NegY
+        } else if min_overlap == dz_min {
+            HitFace::NegZ
+        } else {
+            HitFace::PosZ
+        }
+    }
+
+    pub fn extrude(&self, extrusion: Vec3) -> Self {
+        let amount = extrusion.length();
+        if amount < 0.0 {
+            panic!("Extrusion amount must be non-negative");
+        }
+
+        let mut new_size = self.size;
+        let mut new_position = self.position;
+
+        if extrusion.x > 0.0 {
+            new_size.x += amount;
+        } else if extrusion.x < 0.0 {
+            new_size.x += amount;
+            new_position.x -= amount;
+        }
+
+        if extrusion.y > 0.0 {
+            new_size.y += amount;
+        } else if extrusion.y < 0.0 {
+            new_size.y += amount;
+            new_position.y -= amount;
+        }
+
+        if extrusion.z > 0.0 {
+            new_size.z += amount;
+        } else if extrusion.z < 0.0 {
+            new_size.z += amount;
+            new_position.z -= amount;
+        }
+
+        PhysicsBody {
+            position: new_position,
+            velocity: Vec3::ZERO,
+            size: new_size,
+            accumulator: Time::new::<time::second>(0.),
         }
     }
 }

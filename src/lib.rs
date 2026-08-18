@@ -1,5 +1,6 @@
 use beryllium::{video::GlWindow, *};
 use glam::{Vec2, Vec3};
+use uom::si::{f32::Time, time::{self, second}};
 
 use crate::{
     engine::game::{GameResources, GameState, verticies_from_center_and_size},
@@ -33,7 +34,8 @@ pub fn init_sdl_and_win() -> (Sdl, GlWindow) {
     sdl.set_gl_profile(video::GlProfile::Core).unwrap();
 
     #[cfg(target_os = "macos")]
-    sdl.set_gl_context_flags(video::GlContextFlags::FORWARD_COMPATIBLE).unwrap();
+    sdl.set_gl_context_flags(video::GlContextFlags::FORWARD_COMPATIBLE)
+        .unwrap();
 
     let win_args = video::CreateWinArgs {
         title: WINDOW_TITLE,
@@ -44,8 +46,11 @@ pub fn init_sdl_and_win() -> (Sdl, GlWindow) {
         resizable: false,
     };
 
-    let win = sdl.create_gl_window(win_args).expect("Failed to create window");
-    win.set_swap_interval(video::GlSwapInterval::Immediate).unwrap();
+    let win = sdl
+        .create_gl_window(win_args)
+        .expect("Failed to create window");
+    win.set_swap_interval(video::GlSwapInterval::Immediate)
+        .unwrap();
 
     (sdl, win)
 }
@@ -61,16 +66,17 @@ pub fn radians_to_degrees(radians: f32) -> f32 {
 }
 
 /// Returns the delta time since the last frame in seconds.
-pub fn get_delta_time(sdl: &Sdl, last_frame_time: u32) -> f32 {
-    let current_frame_time = sdl.get_ticks();
-    let delta_time = current_frame_time - last_frame_time;
-
-    delta_time as f32 / 1000.0
+pub fn get_delta_time(sdl: &Sdl, last_frame_time: Time) -> Time {
+    let current_frame_time = Time::new::<time::millisecond>(sdl.get_ticks() as f32);
+    current_frame_time - last_frame_time
 }
 
 pub fn render_world(game: &mut GameState, renderer: &Renderer, viewport: &Viewport) {
     renderer.render_mesh_3d(
-        game.world.mesh.as_ref().expect("Mesh shouldve been build on world init"),
+        game.world
+            .mesh
+            .as_ref()
+            .expect("Mesh shouldve been build on world init"),
         &game.player.camera,
         viewport,
     );

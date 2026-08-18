@@ -2,6 +2,7 @@ use beryllium::*;
 
 use anyhow::Result;
 use gl33::{global_loader::*, *};
+use uom::si::{f32::Time, time};
 use voxel_engine::{
     draw_axis,
     engine::game::{GameResources, GameState},
@@ -43,24 +44,24 @@ fn main() -> Result<()> {
         glViewport(0, 0, drawable_width, drawable_height);
     }
 
-    let mut game = GameState::default();
-    let resources = GameResources::build()?;
     let renderer = Renderer::new(
         (VERT_SHADER_3D, FRAG_SHADER_3D),
         (VERT_SHADER_2D, FRAG_SHADER_2D),
     );
-    let mut ui_renderer = UIRenderer::new(&game, &resources, &viewport);
+    let mut game = GameState::default();
+    let resources = GameResources::build()?;
+    let mut ui_renderer = UIRenderer::new(&game, &resources, &viewport, &renderer);
 
     clear_color(0.2, 0.3, 0.3, 1.0);
     polygon_mode(PolygonMode::Fill);
 
     // Delta time tracking
-    let mut last_frame_time = sdl.get_ticks();
+    let mut last_frame_time = Time::new::<time::millisecond>(sdl.get_ticks() as f32);
 
     'main_loop: loop {
         // Calculate delta time
         let delta_time = get_delta_time(&sdl, last_frame_time);
-        last_frame_time = sdl.get_ticks();
+        last_frame_time = Time::new::<time::millisecond>(sdl.get_ticks() as f32);
 
         setup_3d_rendering();
 
@@ -82,7 +83,7 @@ fn main() -> Result<()> {
 
         draw_axis(&game.player.camera, &viewport);
 
-        ui_renderer.render(&game, &resources, &renderer, &viewport);
+        ui_renderer.render(&game, &resources, &viewport);
 
         win.swap_window();
     }
